@@ -18,15 +18,6 @@ Tests are written in Python using [pytest](https://docs.pytest.org/en/latest/) a
 
 ## Tests
 
-These tests are intended to be implemented:
-
-- [ ] `chaos-go` compiles
-- [ ] `chaos-go` unit tests pass
-- [ ] `chaostool` compiles
-- [ ] `chaostool` unit tests pass
-- [ ] `ndwhitelist` compiles
-- [ ] `ndwhitelist` unit tests pass
-
 ### Single validator node
 
 - [ ] `chaostool` can connect to `chaos-go` and get status
