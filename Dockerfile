@@ -73,4 +73,4 @@ RUN pip3 install pipenv pytest && \
 COPY tests /integration-tests
 WORKDIR /integration-tests
 RUN pipenv sync
-ENTRYPOINT ["pytest"]
+CMD ["pipenv", "run", "pytest"]
