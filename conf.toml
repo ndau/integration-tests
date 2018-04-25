@@ -1,0 +1,14 @@
+[chaos-go]
+repo="ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/chaos-go"
+logical="gitlab.ndau.tech/experiments/chaos-go"
+label="master"
+
+[chaostool]
+repo="ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/chaostool"
+logical="gitlab.ndau.tech/experiments/chaostool"
+label="master"
+
+[whitelist]
+repo="ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/whitelist"
+logical="gitlab.ndau.tech/experiments/whitelist"
+label="master"
