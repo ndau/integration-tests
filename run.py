@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from src.conf import load
-from src.fixtures import go_repo
+from src.repo import go_repo
 from src.subp import subp
 
 

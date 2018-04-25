@@ -8,5 +8,6 @@ python_version = "3.6"
 
 [packages]
 toml = "*"
+pytest = "*"
 
 [dev-packages]
