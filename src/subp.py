@@ -1,7 +1,7 @@
 import subprocess
 
 
-def subp(cmd, *, stderr=subprocess.DEVNULL, timeout=None):
+def subp(cmd, *, stderr=subprocess.DEVNULL, timeout=None, env={}):
     """
     Run a command, ensure its return code was 0, and return its output.
 
@@ -18,6 +18,7 @@ def subp(cmd, *, stderr=subprocess.DEVNULL, timeout=None):
         stderr=stderr,
         timeout=timeout,
         encoding='utf8',
+        env=env,
     )
     subr.check_returncode()
     return subr.stdout.strip()

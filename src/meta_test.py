@@ -5,6 +5,7 @@ Test that the fixtures we build work properly.
 import os
 
 import pytest
+import requests
 from src.repo import within
 from src.subp import subp
 
@@ -43,3 +44,10 @@ def test_whitelist_repo(whitelist_repo, request):
     with within(whitelist_repo):
         actual_hash = subp('git log -1 --pretty=tformat:"%H"')
         assert requested_hash == actual_hash
+
+
+@pytest.mark.meta
+def test_chaos_node(chaos_node):
+    response = requests.get(chaos_node['rpc_address'])
+    response.raise_for_status()
+    assert response.json().len() > 0

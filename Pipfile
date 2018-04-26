@@ -9,5 +9,6 @@ python_version = "3.6"
 [packages]
 toml = "*"
 pytest = "*"
+requests = "*"
 
 [dev-packages]
