@@ -1,4 +1,8 @@
+import os
+
 import toml
+from src.repo import within
+from src.subp import subp
 
 
 def load(*, chaos_go_label=None, chaostool_label=None, whitelist_label=None):
@@ -9,7 +13,12 @@ def load(*, chaos_go_label=None, chaostool_label=None, whitelist_label=None):
     The expected use case is to optionally override certain values from the
     command line.
     """
-    with open('conf.toml', 'rt') as conf_fp:
+    with within(os.path.dirname(os.path.abspath(__file__))):
+        conf_path = os.path.join(
+            subp('git rev-parse --show-toplevel'),
+            'conf.toml',
+        )
+    with open(conf_path, 'rt') as conf_fp:
         conf = toml.load(conf_fp)
     locs = locals()
     for repo in ('chaos_go', 'chaostool', 'whitelist'):

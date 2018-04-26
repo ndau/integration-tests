@@ -17,23 +17,26 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope='module')
 def chaos_go_repo(request):
-    """Return a context manager within which chaos-go is available."""
+    """Return the path at which chaos-go is available."""
     label = request.config.getoption('--chaos-go-label')
     conf = load(chaos_go_label=label)['chaos-go']
-    return go_repo(conf['repo'], conf['logical'], conf['label'])
+    with go_repo(conf['repo'], conf['logical'], conf['label']) as path:
+        yield path
 
 
 @pytest.fixture(scope='module')
 def chaostool_repo(request):
-    """Return a context manager within which chaostool is available."""
+    """Return the path at which chaostool is available."""
     label = request.config.getoption('--chaostool-label')
     conf = load(chaostool_label=label)['chaostool']
-    return go_repo(conf['repo'], conf['logical'], conf['label'])
+    with go_repo(conf['repo'], conf['logical'], conf['label']) as path:
+        yield path
 
 
 @pytest.fixture(scope='module')
 def whitelist_repo(request):
-    """Return a context manager within which whitelist is available."""
+    """Return the path at which whitelist is available."""
     label = request.config.getoption('--whitelist-label')
     conf = load(whitelist_label=label)['whitelist']
-    return go_repo(conf['repo'], conf['logical'], conf['label'])
+    with go_repo(conf['repo'], conf['logical'], conf['label']) as path:
+        yield path
