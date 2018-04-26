@@ -15,7 +15,7 @@ def pytest_addoption(parser):
                      help="Label to use for whitelist")
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def chaos_go_repo(request):
     """Return the path at which chaos-go is available."""
     label = request.config.getoption('--chaos-go-label')
@@ -24,7 +24,7 @@ def chaos_go_repo(request):
         yield path
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def chaostool_repo(request):
     """Return the path at which chaostool is available."""
     label = request.config.getoption('--chaostool-label')
@@ -33,7 +33,7 @@ def chaostool_repo(request):
         yield path
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='session')
 def whitelist_repo(request):
     """Return the path at which whitelist is available."""
     label = request.config.getoption('--whitelist-label')
