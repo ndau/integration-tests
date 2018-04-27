@@ -3,9 +3,10 @@ Test that the fixtures we build work properly.
 """
 
 import os
+import subprocess
 
 import pytest
-import requests
+
 from src.repo import within
 from src.subp import subp
 
@@ -48,6 +49,27 @@ def test_whitelist_repo(whitelist_repo, request):
 
 @pytest.mark.meta
 def test_chaos_node(chaos_node):
-    response = requests.get(chaos_node['rpc_address'])
-    response.raise_for_status()
-    assert response.json().len() > 0
+    # see https://tendermint.readthedocs.io/en/master/getting-started.html
+    env = {
+        'TMHOME': chaos_node['tmhome'],
+        'NDAUHOME': chaos_node['ndauhome'],
+        'PATH': os.environ['PATH'],
+    }
+    print(f'env: {env}')
+
+    try:
+        address = subp(
+            'docker-compose port tendermint 46657',
+            env=env,
+            stderr=subprocess.STDOUT,
+        )
+        print(f'address: {address}')
+
+        subp(f'curl -s {address}/status')
+
+    except subprocess.CalledProcessError as e:
+        print('--STDOUT--')
+        print(e.stdout)
+        print('--RETURN CODE--')
+        print(e.returncode)
+        raise

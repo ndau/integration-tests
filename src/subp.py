@@ -1,7 +1,16 @@
+"""Define a subprocess shortcut."""
+
 import subprocess
 
 
-def subp(cmd, *, stderr=subprocess.DEVNULL, timeout=None, env={}):
+def subp(
+    cmd, *,
+    stdout=subprocess.PIPE,
+    stderr=subprocess.DEVNULL,
+    timeout=None,
+    env={},
+    **kwargs,
+):
     """
     Run a command, ensure its return code was 0, and return its output.
 
@@ -14,11 +23,13 @@ def subp(cmd, *, stderr=subprocess.DEVNULL, timeout=None, env={}):
     subr = subprocess.run(
         cmd,
         shell=True,
-        stdout=subprocess.PIPE,
+        stdout=stdout,
         stderr=stderr,
         timeout=timeout,
         encoding='utf8',
         env=env,
+        **kwargs,
     )
     subr.check_returncode()
-    return subr.stdout.strip()
+    if stdout == subprocess.PIPE:
+        return subr.stdout.strip()
