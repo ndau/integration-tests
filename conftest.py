@@ -3,15 +3,12 @@ Define pytest fixtures.
 
 These fixtures configure and run the chaos chain tools.
 """
-import json
 import os
-import re
 import subprocess
 import time
 from tempfile import TemporaryDirectory
 
 import pytest
-import toml
 
 from src.conf import load
 from src.repo import go_repo, within
@@ -120,52 +117,9 @@ def chaos_node(chaos_node_build):
 
             raise
 
-    # just running init.sh wasn't working, for reasons which were hard to debug
-    # we therefore replicate its most important steps here
-    print("chaos_node fixture: emulating init.sh")
-    run_cmd('docker-compose run --rm --no-deps tendermint init', stdout=None)
-
-    # init: modify config.toml
-    tm_config_path = os.path.join(
-        chaos_node_build['tmhome'],
-        'config', 'config.toml',
-    )
-    with open(tm_config_path, 'rt') as fp:
-        config_toml = toml.load(fp)
-
-    config_toml['proxy_app'] = re.sub(
-        r"://[^:]*:",
-        "://chaosnode:",
-        config_toml['proxy_app'],
-        count=1,
-    )
-    config_toml['consensus']['create_empty_blocks'] = False
-    config_toml['consensus']['create_empty_blocks_interval'] = 10
-
-    with open(tm_config_path, 'wt') as fp:
-        toml.dump(config_toml, fp)
-
-    # init: edit genesis.json
-    empty_hash = run_cmd(
-        "docker-compose run --rm --no-deps chaosnode --echo-empty-hash"
-    ).strip()
-    tm_gj_path = os.path.join(
-        chaos_node_build['tmhome'],
-        'config', 'genesis.json',
-    )
-    with open(tm_gj_path, 'rt') as fp:
-        genesis_json = json.load(fp)
-    genesis_json['app_hash'] = empty_hash
-    with open(tm_gj_path, 'wt') as fp:
-        json.dump(genesis_json, fp)
-
-    # init: complete
-    print("chaos_node fixture: init.sh emulation complete")
-
-    rpc_addr = config_toml['rpc']['laddr']
-    _, _, rpc_addr_port = rpc_addr.rpartition(':')
-    assert rpc_addr_port != rpc_addr  # we have a port number
-    rpc_addr = f'http://localhost:{rpc_addr_port}'
+    print("chaos_node fixture: running init.sh")
+    run_cmd(os.path.join('bin', 'init.sh'))
+    print("chaos_node fixture: init.sh finished")
 
     print("chaos_node fixture: running run.sh")
     # subprocess.run always synchronously waits for the subprocess to terminate
@@ -193,10 +147,7 @@ def chaos_node(chaos_node_build):
     print("chaos_node fixture: run.sh running")
 
     print("chaos_node fixture: yielding")
-    yield {
-        **chaos_node_build,
-        'rpc_address': rpc_addr,
-    }
+    yield chaos_node_build
 
     print("chaos_node fixture: running reset.sh")
     run_cmd(os.path.join('bin', 'reset.sh'))
