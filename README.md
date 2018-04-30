@@ -20,8 +20,8 @@ Tests are written in Python using [pytest](https://docs.pytest.org/en/latest/) a
 
 ### Single validator node
 
-- [ ] `chaostool` can connect to `chaos-go` and get status
-- [ ] `chaostool` can set a value and get it back later
+- [X] `chaostool` can connect to `chaos-go` and get status
+- [X] `chaostool` can set a value and get it back later
 - [ ] `chaostool` can remove a value
 - [ ] `chaostool` can list all namespaces
 - [ ] `chaostool` can dump all k-v pairs from a given namespace
