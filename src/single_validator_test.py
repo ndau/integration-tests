@@ -1,9 +1,11 @@
 
 import subprocess
-from random import choices
+from random import choice, choices
 from string import ascii_lowercase, digits
+from time import sleep
 
 import pytest
+import toml
 from src.subp import subp
 
 
@@ -54,8 +56,50 @@ def test_set_get(chaos, random_string):
     v = chaos(f'get {random_string} -k key -s')
     assert v == 'value'
 
-# - [ ] `chaostool` can remove a value
-# - [ ] `chaostool` can list all namespaces
+
+@pytest.mark.slow
+def test_set_delay_get(chaos, random_string):
+    chaos(f'id new {random_string}')
+    chaos(f'set {random_string} -k key -v value')
+    sleep(15)
+    v = chaos(f'get {random_string} -k key -s')
+    assert v == 'value'
+
+
+def test_remove(chaos, random_string):
+    #  `chaostool` can remove a value
+    chaos(f'id new {random_string}')
+    chaos(f'set {random_string} -k key -v value')
+    chaos(f"set {random_string} -k key -v ''")
+    v = chaos(f'get {random_string} -k key -s')
+    assert v == ''
+
+
+def test_get_ns(chaos):
+    # `chaostool` can list all namespaces
+    # set up some namespaces with some data in each
+    nss = ('one', 'two', 'three')
+    for ns in nss:
+        chaos(f'id new {ns}')
+        chaos(f'set {ns} -k key -v value')
+    # wait to ensure that the blockchain is updated
+    sleep(2)
+
+    # delete a namespace from the local config so we know that we're
+    # reading from the chain, not just echoing local data somehow
+    cp = chaos('conf-path')
+    with open(cp, 'rt') as fp:
+        conf = toml.load(fp)
+    to_remove = choice(nss)
+    del conf['Identities'][to_remove]
+    with open(cp, 'wt') as fp:
+        toml.dump(conf, fp)
+
+    # get the namespaces
+    namespaces = chaos('get-ns').splitlines()
+    assert len(namespaces) == len(nss)
+
+
 # - [ ] `chaostool` can dump all k-v pairs from a given namespace
 # - [ ] `chaostool` can set a value, and a different instance of `chaostool` can retrieve it
 # - [ ] `chaostool` can set a value, and a different instance of `chaostool` cannot overwrite it (i.e. namespaces work)

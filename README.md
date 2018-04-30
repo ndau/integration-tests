@@ -22,8 +22,8 @@ Tests are written in Python using [pytest](https://docs.pytest.org/en/latest/) a
 
 - [X] `chaostool` can connect to `chaos-go` and get status
 - [X] `chaostool` can set a value and get it back later
-- [ ] `chaostool` can remove a value
-- [ ] `chaostool` can list all namespaces
+- [X] `chaostool` can remove a value
+- [X] `chaostool` can list all namespaces
 - [ ] `chaostool` can dump all k-v pairs from a given namespace
 - [ ] `chaostool` can set a value, and a different instance of `chaostool` can retrieve it
 - [ ] `chaostool` can set a value, and a different instance of `chaostool` cannot overwrite it (i.e. namespaces work)

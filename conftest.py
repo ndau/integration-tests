@@ -22,6 +22,24 @@ def pytest_addoption(parser):
                      help="Label to use for chaostool")
     parser.addoption("--whitelist-label", action="store", default="master",
                      help="Label to use for whitelist")
+    parser.addoption("--runslow", action="store_true",
+                     default=False, help="run slow tests")
+    parser.addoption("--skipmeta", action="store_true",
+                     default=False, help="skip meta tests")
+
+
+def pytest_collection_modifyitems(config, items):
+    if not config.getoption("--runslow"):
+        skip_slow = pytest.mark.skip(reason="need --runslow option to run")
+        for item in items:
+            if "slow" in item.keywords:
+                item.add_marker(skip_slow)
+    if config.getoption("--skipmeta"):
+        skip_meta = pytest.mark.skip(
+            reason="--skipmeta used; this test is meta")
+        for item in items:
+            if "meta" in item.keywords:
+                item.add_marker(skip_meta)
 
 
 @pytest.fixture(scope='session')
