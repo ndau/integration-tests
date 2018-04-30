@@ -10,6 +10,25 @@ Testing the chaosnode system in its entirety is relatively complicated, because 
 
 These tools are intended for different audiences and will likely be running on separte machines in production. This makes testing their interactions in a realistic way a non-trivial proposition.
 
+## Getting Started
+
+1. Install [python3.6](https://www.python.org/downloads/)
+2. Install pipenv: `pip3 install pipenv`
+3. cd into the repo root
+4. Install dependencies: `pipenv sync`
+5. Load the environment: `pipenv shell`
+6. You're all set!
+
+## Running the tests
+
+Tests are handled via the `pytest` unit-testing tool. To run a basic test run, simply execute the `pytest` command from the repo root; it'll take care of everything else. However, there are several command-line flags available.
+
+- `--chaos-go-label`, `--chaostool-label`, `--whitelist-label` set the label of the specified repository to build and test. A label can be anything that git accepts as a label: a short hash, full hash, branch name, and tag are all valid options. All of these default to `master`.
+- `--runslow` if set runs tests which have been marked as slow. None of these tests are particularly speedy due to the heavy fixtures in play, but some are particularly poky.
+- `--skipmeta` if set skips metatests. Metatests are tests which verify that the fixtures in use to fetch and build the various dependencies are all working properly.
+
+Note that sometimes docker-compose just fails; this has often been observed in the "docker-compose port" section. It's a bit flaky; if those errors are the only failures reported, it's worth just running the tests again, because very often they'll work on the second run.
+
 ## Testing Strategy
 
 This repository contains a `Dockerfile` which when built produces a container which contains `chaos-go`, `chaos`, `ndwhitelist`, their associated tools and utilities, and the actual test scripts. Tests are executed when the container is run.
