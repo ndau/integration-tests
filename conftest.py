@@ -6,10 +6,9 @@ These fixtures configure and run the chaos chain tools.
 import os
 import subprocess
 import time
-from tempfile import TemporaryDirectory
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 import pytest
-
 from src.conf import load
 from src.repo import go_repo, within
 from src.subp import subp
@@ -147,11 +146,97 @@ def chaos_node(chaos_node_build):
     print("chaos_node fixture: run.sh running")
 
     print("chaos_node fixture: yielding")
-    yield chaos_node_build
+    try:
+        yield chaos_node_build
+    finally:
+        print("chaos_node fixture: running reset.sh")
+        run_cmd(os.path.join('bin', 'reset.sh'))
+        print("chaos_node fixture: reset.sh finished")
 
-    print("chaos_node fixture: running reset.sh")
-    run_cmd(os.path.join('bin', 'reset.sh'))
-    print("chaos_node fixture: reset.sh finished")
+        if run_script.poll() is None:
+            run_script.terminate()
 
-    if run_script.poll() is None:
-        run_script.terminate()
+
+def run_localenv(cmd):
+    """Run a command in the local environment."""
+    try:
+        return subp(
+            cmd,
+            stderr=subprocess.STDOUT,
+            env=os.environ,
+        )
+    except subprocess.CalledProcessError as e:
+        print(e.stdout)
+        raise
+
+
+@pytest.fixture(scope='session')
+def chaostool_build(chaostool_repo):
+    """
+    Build the chaos tool.
+
+    Note that this doesn't perform any configuration;
+    it just builds the binary.
+    """
+    with within(chaostool_repo):
+        run_localenv('glide install')
+        with NamedTemporaryFile(prefix='chaostool-', dir='/tmp') as bin_fp:
+            run_localenv(f'go build -o {bin_fp.name} ./cmd/chaos')
+            yield {
+                'repo': chaostool_repo,
+                'bin': bin_fp.name,
+            }
+
+
+@pytest.fixture(scope='session')
+def whitelist_build(whitelist_repo):
+    """
+    Build the ndwhitelist binary.
+
+    Note that this doesn't perform any configuration,
+    it just builds the binary.
+    """
+    with within(whitelist_repo):
+        run_localenv('dep ensure')
+        with NamedTemporaryFile(prefix='whitelist-', dir='/tmp') as bin_fp:
+            run_localenv(f'go build -o {bin_fp.name} ./cmd/ndwhitelist')
+            yield {
+                'repo': whitelist_repo,
+                'bin': bin_fp.name,
+            }
+
+
+@pytest.fixture
+def chaos_node_and_tool(chaos_node, chaostool_build):
+    """
+    Run a chaos node, and configure the chaos tool to connect to it.
+
+    This necessarily includes the chaos node; depend only on this fixture,
+    not on this plus chaos_node.
+    """
+    env = {
+        'TMHOME': chaos_node['tmhome'],
+        'NDAUHOME': chaos_node['ndauhome'],
+        'PATH': os.environ['PATH'],
+    }
+
+    with within(chaos_node['repo']):
+        address = subp(
+            'docker-compose port tendermint 46657',
+            env=env,
+            stderr=subprocess.STDOUT,
+        )
+
+    if '://' not in address:
+        address = 'http://' + address
+
+    subp(
+        f'{chaostool_build["bin"]} conf {address}',
+        env=env,
+    )
+
+    return {
+        'node': chaos_node,
+        'tool': chaostool_build,
+        'env': env,
+    }

@@ -73,3 +73,19 @@ def test_chaos_node(chaos_node):
         print('--RETURN CODE--')
         print(e.returncode)
         raise
+
+
+@pytest.mark.meta
+def test_chaos_node_and_tool(chaos_node_and_tool):
+    c = chaos_node_and_tool
+    # ensure that 'chaos conf' has already been run
+    subp(f'{c["tool"]["bin"]} id list', env=c['env'])
+    # ensure that the node is running and the tool is configured
+    # to connect to it
+    subp(f'{c["tool"]["bin"]} info', env=c['env'])
+
+
+@pytest.mark.meta
+def test_whitelist_build(whitelist_build):
+    # ensure the binary exists and can run
+    subp(f'{whitelist_build["bin"]} chaos path')

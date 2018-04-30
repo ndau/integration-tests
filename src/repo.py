@@ -71,7 +71,7 @@ def repo(remote, local=None, label='master', cleanup=True):
                 stashed = False
             else:
                 stashed = True
-                subp('git stash')
+                subp('git stash push --include-untracked')
 
             current_branch = subp('git rev-parse --abbrev-ref HEAD')
             if label == current_branch:
@@ -86,7 +86,17 @@ def repo(remote, local=None, label='master', cleanup=True):
                 if ch_branch:
                     subp(f'git checkout -f {current_branch}')
                 if stashed:
-                    subp('git stash pop')
+                    try:
+                        subp(
+                            'git stash pop',
+                            stderr=subprocess.STDOUT,
+                        )
+                    except subprocess.CalledProcessError as e:
+                        if 'No stash entries found' in e.stdout:
+                            pass
+                        else:
+                            print(e.stdout)
+                            raise
     finally:
         if delete_after:
             shutil.rmtree(local)
