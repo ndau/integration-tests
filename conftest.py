@@ -154,13 +154,26 @@ def chaos_node(chaos_node_build):
         ),
     )
     # starting tendermint takes a few seconds before it's ready to receive
-    # incoming connections
-    time.sleep(5)
-    run_status = run_script.poll()
-    if run_status is not None:
-        raise Exception(
-            f"run.sh exited unexpectedly with code {run_status}"
-        )
+    # incoming connections. Therefore, just keep delaying until it succeeds,
+    # up to one minute.
+    upcheck_interval = 2
+    for attempt in range(0, 60, upcheck_interval):
+        run_status = run_script.poll()
+        if run_status is not None:
+            raise Exception(
+                f"run.sh exited unexpectedly with code {run_status}"
+            )
+        print(f'Attempt to start chaos node @ {attempt}s:')
+        try:
+            address = run_cmd('docker-compose port tendermint 46657')
+            run_cmd(f'curl -s {address}/status')
+        except subprocess.CalledProcessError as e:
+            pass
+        else:
+            break
+
+        time.sleep(upcheck_interval)
+
     print("chaos_node fixture: run.sh running")
 
     print("chaos_node fixture: yielding")
