@@ -237,4 +237,23 @@ def test_whitelist_tool_can_whitelist(chaos_and_whitelist):
     assert whitelist(f'check {key} -v {value}') == 'true'
 
 
-# - [ ] `chaostool` can send a whitelisted SCP and it is accepted
+def test_whitelisted_scps_are_accepted(chaos_and_whitelist):
+    """`chaostool` can send a whitelisted SCP and it is accepted."""
+    chaos = chaos_and_whitelist['chaos']
+    whitelist = chaos_and_whitelist['whitelist']
+
+    key = _random_string()
+    value = _random_string()
+
+    print("adding key and value to whitelist")
+    whitelist(f'add {key} -v {value}')
+
+    print("sending as scp")
+    chaos(f'scp -k {key} -v {value}')
+
+    # allow block to finalize
+    sleep(3)
+
+    print('verifying sys value')
+    actual_val = chaos(f'get --sys -k {key} -s')
+    assert actual_val == value

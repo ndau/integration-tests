@@ -49,7 +49,7 @@ Tests are written in Python using [pytest](https://docs.pytest.org/en/latest/) a
 - [X] `chaostool` can list the history of a value
 - [X] `chaostool` can send a non-whitelisted SCP but it it not accepted
 - [X] `ndwhitelist` can whitelist a SCP
-- [ ] `chaostool` can send a whitelisted SCP and it is accepted
+- [X] `chaostool` can send a whitelisted SCP and it is accepted
 
 ### Two validator nodes
 
