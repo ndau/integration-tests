@@ -48,7 +48,7 @@ Tests are written in Python using [pytest](https://docs.pytest.org/en/latest/) a
 - [X] `chaostool` can set a value, and a different instance of `chaostool` cannot overwrite it (i.e. namespaces work)
 - [X] `chaostool` can list the history of a value
 - [X] `chaostool` can send a non-whitelisted SCP but it it not accepted
-- [ ] `ndwhitelist` can whitelist a SCP
+- [X] `ndwhitelist` can whitelist a SCP
 - [ ] `chaostool` can send a whitelisted SCP and it is accepted
 
 ### Two validator nodes

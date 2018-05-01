@@ -208,8 +208,8 @@ def test_reject_non_whitelisted_scps(chaos_and_whitelist):
     chaos = chaos_and_whitelist['chaos']
     whitelist = chaos_and_whitelist['whitelist']
 
-    key = 'key'
-    value = 'value'
+    key = _random_string()
+    value = _random_string()
 
     assert whitelist(f'check {key} -v {value}') == 'false'
     with pytest.raises(subprocess.CalledProcessError):
@@ -218,5 +218,23 @@ def test_reject_non_whitelisted_scps(chaos_and_whitelist):
     sys_val = chaos(f'get --sys -k {key} -s')
     assert len(sys_val.strip()) == 0
 
-# - [ ] `ndwhitelist` can whitelist a SCP
+
+def test_whitelist_tool_can_whitelist(chaos_and_whitelist):
+    """`ndwhitelist` can whitelist a SCP."""
+    whitelist = chaos_and_whitelist['whitelist']
+
+    key = _random_string()
+    value = _random_string()
+
+    print("whitelist path:")
+    print(whitelist('path'))
+    assert whitelist(f'check {key} -v {value}') == 'false'
+
+    print("adding a k-v pair to whitelist")
+    whitelist(f'add {key} -v {value}')
+
+    print(whitelist('list -v'))
+    assert whitelist(f'check {key} -v {value}') == 'true'
+
+
 # - [ ] `chaostool` can send a whitelisted SCP and it is accepted
