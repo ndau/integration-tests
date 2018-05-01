@@ -152,7 +152,21 @@ def test_cannot_overwrite_others_namespace(chaos):
         assert v == f'value {ns}'
 
 
-# - [ ] `chaostool` can list the history of a value
+@pytest.mark.slow
+def test_get_history(chaos):
+    """`chaostool` can list the history of a value."""
+    chaos('id new historic')
+    for i in range(5):
+        chaos(f'set historic -k counter -v {i}')
+        # wait for a few blocks to pass before setting next value
+        sleep(3)
+    history = [
+        line.strip()
+        for line in chaos('history historic -k counter -s').splitlines()
+        if len(line.strip()) > 0 and 'Height' not in line
+    ]
+    assert history == [str(i) for i in reversed(range(5))]
+
 # - [ ] `chaostool` can send a non-whitelisted SCP but it it not accepted
 # - [ ] `ndwhitelist` can whitelist a SCP
 # - [ ] `chaostool` can send a whitelisted SCP and it is accepted
