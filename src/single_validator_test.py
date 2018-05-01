@@ -35,6 +35,41 @@ def chaos(chaos_node_and_tool):
     return rf
 
 
+@pytest.fixture
+def chaos_and_whitelist(chaos_node_and_tool, whitelist_build):
+    """
+    Fixture providing a chaos function and a whitelist function.
+
+    The chaos function calls the chaos command in a configured environment.
+    The whitelist function calls the ndwhitelist command in a configured
+    environment.
+    """
+    def ch_f(cmd, **kwargs):
+        try:
+            return subp(
+                f'{chaos_node_and_tool["tool"]["bin"]} {cmd}',
+                env=chaos_node_and_tool["env"],
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+        except subprocess.CalledProcessError as e:
+            print(e.stdout)
+            raise
+
+    def wl_f(cmd, **kwargs):
+        try:
+            return subp(
+                f'{whitelist_build["bin"]} chaos {cmd}',
+                env=chaos_node_and_tool["env"],
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+        except subprocess.CalledProcessError as e:
+            print(e.stdout)
+            raise
+    return {'chaos': ch_f, 'whitelist': wl_f}
+
+
 def test_get_status(chaos):
     """`chaostool` can connect to `chaos-go` and get status."""
     chaos('info')
@@ -167,6 +202,21 @@ def test_get_history(chaos):
     ]
     assert history == [str(i) for i in reversed(range(5))]
 
-# - [ ] `chaostool` can send a non-whitelisted SCP but it it not accepted
+
+def test_reject_non_whitelisted_scps(chaos_and_whitelist):
+    """`chaostool` can send a non-whitelisted SCP but it it not accepted."""
+    chaos = chaos_and_whitelist['chaos']
+    whitelist = chaos_and_whitelist['whitelist']
+
+    key = 'key'
+    value = 'value'
+
+    assert whitelist(f'check {key} -v {value}') == 'false'
+    with pytest.raises(subprocess.CalledProcessError):
+        chaos(f'scp -k {key} -v {value}')
+
+    sys_val = chaos(f'get --sys -k {key} -s')
+    assert len(sys_val.strip()) == 0
+
 # - [ ] `ndwhitelist` can whitelist a SCP
 # - [ ] `chaostool` can send a whitelisted SCP and it is accepted
