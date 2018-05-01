@@ -1,4 +1,4 @@
-
+"""Tests that single validator nodes operate as expected."""
 import subprocess
 from random import choice, choices
 from string import ascii_lowercase, digits
@@ -10,7 +10,7 @@ from src.subp import subp
 
 
 @pytest.fixture
-def random_string(len=16):
+def _random_string(len=16):
     return ''.join(choices(ascii_lowercase+digits, k=len))
 
 
@@ -36,12 +36,12 @@ def chaos(chaos_node_and_tool):
 
 
 def test_get_status(chaos):
-    # `chaostool` can connect to `chaos-go` and get status
+    """`chaostool` can connect to `chaos-go` and get status."""
     chaos('info')
 
 
 def test_create_id(chaos, random_string):
-    # first line is always a header
+    """First line is always a header."""
     known_ids = chaos('id list').splitlines()[1:]
     assert not any(random_string in id_line for id_line in known_ids)
     chaos(f'id new {random_string}')
@@ -50,7 +50,7 @@ def test_create_id(chaos, random_string):
 
 
 def test_set_get(chaos, random_string):
-    # `chaostool` can set a value and get it back later
+    """`chaostool` can set a value and get it back later."""
     chaos(f'id new {random_string}')
     chaos(f'set {random_string} -k key -v value')
     v = chaos(f'get {random_string} -k key -s')
@@ -59,6 +59,7 @@ def test_set_get(chaos, random_string):
 
 @pytest.mark.slow
 def test_set_delay_get(chaos, random_string):
+    """Getting a value doesn't depend on it remaining in memory."""
     chaos(f'id new {random_string}')
     chaos(f'set {random_string} -k key -v value')
     sleep(15)
@@ -67,7 +68,7 @@ def test_set_delay_get(chaos, random_string):
 
 
 def test_remove(chaos, random_string):
-    #  `chaostool` can remove a value
+    """`chaostool` can remove a value."""
     chaos(f'id new {random_string}')
     chaos(f'set {random_string} -k key -v value')
     chaos(f"set {random_string} -k key -v ''")
@@ -76,7 +77,7 @@ def test_remove(chaos, random_string):
 
 
 def test_get_ns(chaos):
-    # `chaostool` can list all namespaces
+    """`chaostool` can list all namespaces."""
     # set up some namespaces with some data in each
     nss = ('one', 'two', 'three')
     for ns in nss:
