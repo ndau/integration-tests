@@ -122,7 +122,24 @@ def test_dump(chaos):
     assert expected_lines == found_lines
 
 
-# - [ ] `chaostool` can set a value, and a different instance of `chaostool` can retrieve it
+def test_can_retrieve_values_using_namespace(chaos):
+    """Values can be retrieved given only the namespace and key."""
+    chaos('id new temp')
+    chaos('set temp -k "this key is durable" -v "really"')
+
+    # get the namespace from the local config, and also delete that key,
+    # so if we want that value back, we _need_ to use the namespace.
+    cp = chaos('conf-path')
+    with open(cp, 'rt') as fp:
+        conf = toml.load(fp)
+    t_key = conf['Identities']['temp']['PublicKey'].rstrip('=')
+    del conf['Identities']['temp']
+    with open(cp, 'wt') as fp:
+        toml.dump(conf, fp)
+
+    val = chaos(f'get --ns="{t_key}" -k "this key is durable" -s')
+    assert val == "really"
+
 # - [ ] `chaostool` can set a value, and a different instance of `chaostool` cannot overwrite it (i.e. namespaces work)
 # - [ ] `chaostool` can list the history of a value
 # - [ ] `chaostool` can send a non-whitelisted SCP but it it not accepted
