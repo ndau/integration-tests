@@ -101,7 +101,27 @@ def test_get_ns(chaos):
     assert len(namespaces) == len(nss)
 
 
-# - [ ] `chaostool` can dump all k-v pairs from a given namespace
+def test_dump(chaos):
+    """`chaostool` can dump all k-v pairs from a given namespace."""
+    # set up a second namespace to ensure we filter out others
+    nss = ('one', 'two')
+    for ns in nss:
+        chaos(f'id new {ns}')
+        chaos(f'set {ns} -k key -v "value {ns}"')
+    chaos('set one -k "another key" -v "another value"')
+    chaos('set one -k "the key" -v "let go"')
+
+    expected_lines = set((
+        '"key"="value one"',
+        '"another key"="another value"',
+        '"the key"="let go"',
+    ))
+
+    found_lines = set(chaos('dump one -s').splitlines())
+
+    assert expected_lines == found_lines
+
+
 # - [ ] `chaostool` can set a value, and a different instance of `chaostool` can retrieve it
 # - [ ] `chaostool` can set a value, and a different instance of `chaostool` cannot overwrite it (i.e. namespaces work)
 # - [ ] `chaostool` can list the history of a value
