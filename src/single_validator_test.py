@@ -75,39 +75,39 @@ def test_get_status(chaos):
     chaos('info')
 
 
-def test_create_id(chaos, random_string):
+def test_create_id(chaos, _random_string):
     """First line is always a header."""
     known_ids = chaos('id list').splitlines()[1:]
-    assert not any(random_string in id_line for id_line in known_ids)
-    chaos(f'id new {random_string}')
+    assert not any(_random_string in id_line for id_line in known_ids)
+    chaos(f'id new {_random_string}')
     new_ids = chaos('id list').splitlines()[1:]
-    assert any(random_string in id_line for id_line in new_ids)
+    assert any(_random_string in id_line for id_line in new_ids)
 
 
-def test_set_get(chaos, random_string):
+def test_set_get(chaos, _random_string):
     """`chaostool` can set a value and get it back later."""
-    chaos(f'id new {random_string}')
-    chaos(f'set {random_string} -k key -v value')
-    v = chaos(f'get {random_string} -k key -s')
+    chaos(f'id new {_random_string}')
+    chaos(f'set {_random_string} -k key -v value')
+    v = chaos(f'get {_random_string} -k key -s')
     assert v == 'value'
 
 
 @pytest.mark.slow
-def test_set_delay_get(chaos, random_string):
+def test_set_delay_get(chaos, _random_string):
     """Getting a value doesn't depend on it remaining in memory."""
-    chaos(f'id new {random_string}')
-    chaos(f'set {random_string} -k key -v value')
+    chaos(f'id new {_random_string}')
+    chaos(f'set {_random_string} -k key -v value')
     sleep(15)
-    v = chaos(f'get {random_string} -k key -s')
+    v = chaos(f'get {_random_string} -k key -s')
     assert v == 'value'
 
 
-def test_remove(chaos, random_string):
+def test_remove(chaos, _random_string):
     """`chaostool` can remove a value."""
-    chaos(f'id new {random_string}')
-    chaos(f'set {random_string} -k key -v value')
-    chaos(f"set {random_string} -k key -v ''")
-    v = chaos(f'get {random_string} -k key -s')
+    chaos(f'id new {_random_string}')
+    chaos(f'set {_random_string} -k key -v value')
+    chaos(f"set {_random_string} -k key -v ''")
+    v = chaos(f'get {_random_string} -k key -s')
     assert v == ''
 
 
