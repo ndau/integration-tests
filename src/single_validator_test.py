@@ -140,7 +140,18 @@ def test_can_retrieve_values_using_namespace(chaos):
     val = chaos(f'get --ns="{t_key}" -k "this key is durable" -s')
     assert val == "really"
 
-# - [ ] `chaostool` can set a value, and a different instance of `chaostool` cannot overwrite it (i.e. namespaces work)
+
+def test_cannot_overwrite_others_namespace(chaos):
+    """Users cannot overwrite each others' values."""
+    nss = ('one', 'two')
+    for ns in nss:
+        chaos(f'id new {ns}')
+        chaos(f'set {ns} -k key -v "value {ns}"')
+    for ns in nss:
+        v = chaos(f'get {ns} -k key -s')
+        assert v == f'value {ns}'
+
+
 # - [ ] `chaostool` can list the history of a value
 # - [ ] `chaostool` can send a non-whitelisted SCP but it it not accepted
 # - [ ] `ndwhitelist` can whitelist a SCP
