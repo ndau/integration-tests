@@ -1,4 +1,5 @@
 """Tests that single validator nodes operate as expected."""
+import os
 import subprocess
 from random import choice, choices
 from string import ascii_lowercase, digits
@@ -6,6 +7,7 @@ from time import sleep
 
 import pytest
 import toml
+
 from src.subp import subp
 
 
@@ -227,11 +229,20 @@ def test_whitelist_tool_can_whitelist(chaos_and_whitelist):
     value = _random_string()
 
     print("whitelist path:")
-    print(whitelist('path'))
+    path = whitelist('path')
+    print(path)
     assert whitelist(f'check {key} -v {value}') == 'false'
 
     print("adding a k-v pair to whitelist")
-    whitelist(f'add {key} -v {value}')
+    print(whitelist(f'add {key} -v {value}'))
+
+    print(f"whitelist exists: {os.path.exists(path)}")
+
+    with open(path, 'rb') as fp:
+        wl_data = fp.read()
+    print(f"len(wl_data): {len(wl_data)}")
+    wl_data_hex = ''.join(f'{b:02x} ' for b in wl_data)
+    print(f"whitelist as hex: {wl_data_hex}")
 
     print(whitelist('list -v'))
     assert whitelist(f'check {key} -v {value}') == 'true'
