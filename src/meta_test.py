@@ -88,4 +88,8 @@ def test_chaos_node_and_tool(chaos_node_and_tool):
 @pytest.mark.meta
 def test_whitelist_build(whitelist_build):
     # ensure the binary exists and can run
-    subp(f'{whitelist_build["bin"]} chaos path')
+    try:
+        subp(f'{whitelist_build["bin"]} chaos path', stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as e:
+        print(e.stdout)
+        raise
