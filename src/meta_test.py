@@ -4,6 +4,7 @@ Test that the fixtures we build work properly.
 
 import os
 import subprocess
+from glob import glob
 
 import pytest
 
@@ -93,3 +94,18 @@ def test_whitelist_build(whitelist_build):
     except subprocess.CalledProcessError as e:
         print(e.stdout)
         raise
+
+
+@pytest.mark.meta
+def test_chaos_node_two_validator_build(chaos_node_two_validator_build):
+    """Ensure that all expected outputs exist for two validator build."""
+    for path in chaos_node_two_validator_build.values():
+        assert os.path.exists(path)
+    output_scripts = glob(os.path.join(
+        chaos_node_two_validator_build['scripts'],
+        '*.sh'
+    ))
+    print("scripts generated:")
+    for script in output_scripts:
+        print(script)
+    assert len(output_scripts) > 0

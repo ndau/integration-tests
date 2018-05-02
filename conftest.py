@@ -271,3 +271,41 @@ def chaos_node_and_tool(chaos_node, chaostool_build):
         'tool': chaostool_build,
         'env': env,
     }
+
+
+@pytest.fixture(scope='session')
+def chaos_node_two_validator_build(chaos_go_repo):
+    """
+    Build a network containing two chaos nodes.
+
+    Because chaos nodes are stateful, we need to init/run/reset them for
+    every test to ensure that the tests each have clean slates. However,
+    we only need to actually build the project once per test session.
+
+    That's what this fixture does.
+    """
+    pypath = os.path.join(chaos_go_repo, 'py')
+    with TemporaryDirectory(prefix='multinode-', dir='/tmp') as mnhome, within(pypath):  # noqa: E501
+        script_dir = os.path.join(mnhome, 'scripts')
+        try:
+            subp(
+                (
+                    'pipenv run ./gen_nodes.py 2 '
+                    f'--home {mnhome} '
+                    f'--output {script_dir} '
+                ),
+                stderr=subprocess.STDOUT,
+                env={
+                    'LC_ALL': 'en_US.UTF-8',
+                    'LANG': 'en_US.UTF-8',
+                    'PATH': os.environ['PATH'],
+                },
+            )
+        except Exception as e:
+            print(e.stdout)
+            raise
+        yield {
+            'repo': chaos_go_repo,
+            'multinode': mnhome,
+            'scripts': script_dir,
+        }
