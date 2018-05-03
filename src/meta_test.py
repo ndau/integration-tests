@@ -109,3 +109,11 @@ def test_chaos_node_two_validator_build(chaos_node_two_validator_build):
     for script in output_scripts:
         print(script)
     assert len(output_scripts) > 0
+
+
+@pytest.mark.meta
+def test_chaos_node_two_validator(chaos_node_two_validator):
+    """Ensure that both validators of the chaos node are up."""
+    gen_nodes = chaos_node_two_validator['gen_nodes']
+    for address in gen_nodes('2 --rpc-address').splitlines():
+        subp(f'curl -s {address}/status')

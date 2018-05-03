@@ -285,27 +285,107 @@ def chaos_node_two_validator_build(chaos_go_repo):
     That's what this fixture does.
     """
     pypath = os.path.join(chaos_go_repo, 'py')
-    with TemporaryDirectory(prefix='multinode-', dir='/tmp') as mnhome, within(pypath):  # noqa: E501
-        script_dir = os.path.join(mnhome, 'scripts')
+
+    def gen_nodes(cmd, **kwargs):
         try:
-            subp(
-                (
-                    'pipenv run ./gen_nodes.py 2 '
-                    f'--home {mnhome} '
-                    f'--output {script_dir} '
-                ),
+            return subp(
+                f'pipenv run ./gen_nodes.py {cmd}',
                 stderr=subprocess.STDOUT,
                 env={
                     'LC_ALL': 'en_US.UTF-8',
                     'LANG': 'en_US.UTF-8',
                     'PATH': os.environ['PATH'],
                 },
+                cwd=pypath,
             )
         except Exception as e:
             print(e.stdout)
             raise
+
+    with TemporaryDirectory(prefix='multinode-', dir='/tmp') as mnhome:
+        script_dir = os.path.join(mnhome, 'scripts')
+        gen_nodes(f'2 --home {mnhome} --output {script_dir}')
         yield {
             'repo': chaos_go_repo,
             'multinode': mnhome,
             'scripts': script_dir,
+            'gen_nodes': gen_nodes,
         }
+
+
+@pytest.fixture
+def chaos_node_two_validator(chaos_node_two_validator_build):
+    """
+    Initialize and run a two node chaos network for this test.
+
+    Because chaos nodes are stateful, we need to init/run/reset them for
+    every test. This fixture accomplishes that.
+    """
+    def run_cmd(cmd, **kwargs):
+        try:
+            return subp(
+                cmd,
+                stderr=subprocess.STDOUT,
+                cwd=chaos_node_two_validator_build['repo'],
+                **kwargs,
+            )
+        except subprocess.CalledProcessError as e:
+            print('--STDOUT--')
+            print(e.stdout)
+            raise
+
+    print("chaos_node_two_validator fixture: running run_many.sh")
+    # subprocess.run always synchronously waits for the subprocess to terminate
+    # that isn't acceptable here, so we fall back to a raw Popen call
+    run_script = subprocess.Popen(
+        [os.path.join(
+            chaos_node_two_validator_build['scripts'],
+            'run_many.sh',
+        )],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        cwd=chaos_node_two_validator_build['repo'],
+        encoding='utf8',
+    )
+
+    # starting tendermint takes a few seconds before it's ready to receive
+    # incoming connections. Therefore, just keep delaying until it succeeds,
+    # up to one minute.
+    address = chaos_node_two_validator_build['gen_nodes'](
+        '2 --rpc-address | head -n 1'
+    )
+    upcheck_interval = 2
+    for attempt in range(0, 60, upcheck_interval):
+        run_status = run_script.poll()
+        if run_status is not None:
+            raise Exception(
+                f"run_many.sh exited unexpectedly with code {run_status}"
+            )
+        print(f'Attempt to start chaos node @ {attempt}s:')
+        try:
+            run_cmd(f'curl -s {address}/status')
+        except subprocess.CalledProcessError as e:
+            pass
+        else:
+            break
+
+        time.sleep(upcheck_interval)
+
+    print("chaos_node_two_validator fixture: run_many.sh running")
+
+    print("chaos_node_two_validator fixture: yielding")
+    try:
+        yield dict(
+            **chaos_node_two_validator_build,
+            run=run_cmd
+        )
+    finally:
+        print("chaos_node_two_validator fixture: running stop_many.sh")
+        run_cmd(os.path.join(
+            chaos_node_two_validator_build['scripts'],
+            'stop_many.sh',
+        ))
+        print("chaos_node_two_validator fixture: stop_many.sh finished")
+
+        if run_script.poll() is None:
+            run_script.terminate()
