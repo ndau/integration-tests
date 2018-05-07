@@ -53,12 +53,14 @@ Tests are written in Python using [pytest](https://docs.pytest.org/en/latest/) a
 
 ### Two validator nodes
 
-Two validator nodes must pass all single validator node tests, plus the following:
 
+- [*] Two validator nodes pass all single validator node tests
+- [X] When node power is equal, and one node has whitelisted a SCP but the other has not, a transaction setting that SCP is not accepted
 - [ ] `chaostool` can send Globally Trusted Validator Change transactions and see those updates reflected in the consensus
-- [ ] When node power is equal, and one node has whitelisted a SCP but the other has not, a transaction setting that SCP is not accepted
 - [ ] When one node has >2/3 of the voting power, and that node has whitelisted a SCP but the other has not, a transaction setting that SCP is accepted
 - [ ] `chaostool` can set a value in on one node and retrieve it from the other node
+
+[*]: Some tests currently skipped because test implementation incomplete.
 
 ### Four validator nodes and six verifier nodes
 

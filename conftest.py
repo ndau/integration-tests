@@ -29,6 +29,7 @@ def pytest_addoption(parser):
 
 
 def pytest_collection_modifyitems(config, items):
+    """Pytest func to adjust which tests are run."""
     if not config.getoption("--runslow"):
         skip_slow = pytest.mark.skip(reason="need --runslow option to run")
         for item in items:
@@ -36,7 +37,7 @@ def pytest_collection_modifyitems(config, items):
                 item.add_marker(skip_slow)
     if config.getoption("--skipmeta"):
         skip_meta = pytest.mark.skip(
-            reason="--skipmeta used; this test is meta")
+            reason="skipped due to --skipmeta option")
         for item in items:
             if "meta" in item.keywords:
                 item.add_marker(skip_meta)
@@ -273,7 +274,7 @@ def chaos_node_and_tool(chaos_node, chaostool_build):
     }
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def chaos_node_two_validator_build(chaos_go_repo):
     """
     Build a network containing two chaos nodes.
@@ -389,3 +390,55 @@ def chaos_node_two_validator(chaos_node_two_validator_build):
 
         if run_script.poll() is None:
             run_script.terminate()
+
+
+@pytest.fixture
+def two_chaos_nodes_and_tool(chaos_node_two_validator, chaostool_build):
+    """
+    Run a pair of chaos nodes, and configure the chaos tool to connect to it.
+
+    For simplicity, the 'chaos' function returned here is configured to connect
+    only to the first node, but enough information is provided that it should
+    be simple to write a subfixture connecting to a different node.
+    """
+    ndauhomes = chaos_node_two_validator['run'](
+        f'find {chaos_node_two_validator["multinode"]}'
+        ' -type d -name ndau -print'
+    ).splitlines()
+
+    env = {
+        'PATH': os.environ['PATH'],
+        'NDAUHOME': ndauhomes[0],
+    }
+
+    print('ndauhome:', env['NDAUHOME'])
+
+    gen_nodes = chaos_node_two_validator['gen_nodes']
+    address = gen_nodes('2 --rpc-address').splitlines()[0]
+
+    if '://' not in address:
+        address = 'http://' + address
+
+    subp(
+        f'{chaostool_build["bin"]} conf {address}',
+        env=env,
+    )
+
+    def chaos(cmd, **kwargs):
+        try:
+            return subp(
+                f'{chaostool_build["bin"]} {cmd}',
+                env=env,
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+        except subprocess.CalledProcessError as e:
+            print(e.stdout)
+            raise
+
+    return {
+        'node': chaos_node_two_validator,
+        'tool': chaostool_build,
+        'env': env,
+        'chaos': chaos,
+    }
