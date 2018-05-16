@@ -1,6 +1,6 @@
 [chaos-go]
-repo="git@github.com:oneiro-ndev/chaoschain.git"
-logical="github.com/oneiro-ndev/chaoschain"
+repo="git@github.com:oneiro-ndev/chaosnode.git"
+logical="github.com/oneiro-ndev/chaosnode"
 label="master"
 
 [chaostool]
