@@ -6,7 +6,9 @@ These fixtures configure and run the chaos chain tools.
 import os
 import subprocess
 import time
+import tempfile
 from tempfile import NamedTemporaryFile, TemporaryDirectory
+import pdb
 
 import pytest
 from src.conf import load
@@ -26,7 +28,13 @@ def pytest_addoption(parser):
                      default=False, help="run slow tests")
     parser.addoption("--skipmeta", action="store_true",
                      default=False, help="skip meta tests")
+# JSG add option to keep temp files and dirs if debugging failures
+    parser.addoption("--keeptemp", action="store_true",
+                     default=False, help="keep temporary files for debugging")
 
+@pytest.fixture(scope='session')
+def keeptemp(request):
+    return request.config.getoption("--keeptemp")
 
 def pytest_collection_modifyitems(config, items):
     """Pytest func to adjust which tests are run."""
@@ -83,7 +91,14 @@ def chaos_node_build(chaos_go_repo):
     """
     build_script = os.path.join(chaos_go_repo, 'bin', 'build.sh')
     try:
-        with TemporaryDirectory(prefix='ndauhome-', dir='/tmp') as ndauhome, TemporaryDirectory(prefix='tmhome-', dir='/tmp') as tmhome, within(chaos_go_repo):  # noqa: E501
+        # JSG Dont use TemporaryDirectroy as it will always get deleted, mkdtemp will create temp directory but not delete, this will get
+        # cleaned up in reset.sh if --keeptemp option is not set
+        # with TemporaryDirectory(prefix='ndauhome-', dir='/tmp') as ndauhome, TemporaryDirectory(prefix='tmhome-', dir='/tmp') as tmhome, within(chaos_go_repo):  # noqa: E501
+        ndauhome = tempfile.mkdtemp(prefix='ndauhome-', dir='/tmp')
+        tmhome = tempfile.mkdtemp(prefix='tmhome-', dir='/tmp')
+        print(f'build ndauhome: {ndauhome}')
+        print(f'build tmhome: {tmhome}')
+        with within(chaos_go_repo):            
             try:
                 subp(
                     build_script,
@@ -91,7 +106,7 @@ def chaos_node_build(chaos_go_repo):
                     stderr=subprocess.STDOUT,
                 )
             except Exception as e:
-                print(e.stdout)
+                print(e)
                 raise
             yield {
                 'repo': chaos_go_repo,
@@ -107,7 +122,7 @@ def chaos_node_build(chaos_go_repo):
 
 
 @pytest.fixture
-def chaos_node(chaos_node_build):
+def chaos_node(keeptemp, chaos_node_build):
     """
     Initialize and run a chaos node for this test.
 
@@ -136,10 +151,15 @@ def chaos_node(chaos_node_build):
             raise
 
     print("chaos_node fixture: running init.sh")
+    print(f'init.sh: {os.path.join("bin", "init.sh")}')
+    print(f'cwd: {chaos_node_build["repo"]}')
+    print(f'ndauhome: {chaos_node_build["ndauhome"]}')
+    print(f'tmhome: {chaos_node_build["tmhome"]}')
     run_cmd(os.path.join('bin', 'init.sh'))
     print("chaos_node fixture: init.sh finished")
 
     print("chaos_node fixture: running run.sh")
+    print(f'run.sh: {[os.path.join(chaos_node_build["repo"], "bin", "run.sh")]}')
     # subprocess.run always synchronously waits for the subprocess to terminate
     # that isn't acceptable here, so we fall back to a raw Popen call
     run_script = subprocess.Popen(
@@ -166,7 +186,8 @@ def chaos_node(chaos_node_build):
             )
         print(f'Attempt to start chaos node @ {attempt}s:')
         try:
-            address = run_cmd('docker-compose port tendermint 46657')
+            # JSG change port to current default TM port: 26657
+            address = run_cmd('docker-compose port tendermint 26657')
             run_cmd(f'curl -s {address}/status')
         except subprocess.CalledProcessError as e:
             pass
@@ -181,9 +202,11 @@ def chaos_node(chaos_node_build):
     try:
         yield chaos_node_build
     finally:
-        print("chaos_node fixture: running reset.sh")
-        run_cmd(os.path.join('bin', 'reset.sh'))
-        print("chaos_node fixture: reset.sh finished")
+        if not keeptemp:
+            print("chaos_node fixture: running reset.sh")
+            # JSG only run reset.sh if keeptemp is false
+            run_cmd(os.path.join('bin', 'reset.sh'))
+            print("chaos_node fixture: reset.sh finished")
 
         if run_script.poll() is None:
             run_script.terminate()
@@ -203,7 +226,7 @@ def run_localenv(cmd):
 
 
 @pytest.fixture(scope='session')
-def chaostool_build(chaostool_repo):
+def chaostool_build(keeptemp, chaostool_repo):
     """
     Build the chaos tool.
 
@@ -212,16 +235,23 @@ def chaostool_build(chaostool_repo):
     """
     with within(chaostool_repo):
         run_localenv('glide install')
-        with NamedTemporaryFile(prefix='chaostool-', dir='/tmp') as bin_fp:
-            run_localenv(f'go build -o {bin_fp.name} ./cmd/chaos')
-            yield {
-                'repo': chaostool_repo,
-                'bin': bin_fp.name,
-            }
-
+        if keeptemp:
+            with NamedTemporaryFile(prefix='chaostool-', dir='/tmp', delete=False) as bin_fp:
+                run_localenv(f'go build -o {bin_fp.name} ./cmd/chaos')
+                yield {
+                    'repo': chaostool_repo,
+                    'bin': bin_fp.name,
+                }
+        else:
+            with NamedTemporaryFile(prefix='chaostool-', dir='/tmp', delete=True) as bin_fp:
+                run_localenv(f'go build -o {bin_fp.name} ./cmd/chaos')
+                yield {
+                    'repo': chaostool_repo,
+                    'bin': bin_fp.name,
+                }
 
 @pytest.fixture(scope='session')
-def whitelist_build(whitelist_repo):
+def whitelist_build(keeptemp, whitelist_repo):
     """
     Build the ndwhitelist binary.
 
@@ -230,12 +260,20 @@ def whitelist_build(whitelist_repo):
     """
     with within(whitelist_repo):
         run_localenv('dep ensure')
-        with NamedTemporaryFile(prefix='whitelist-', dir='/tmp') as bin_fp:
-            run_localenv(f'go build -o {bin_fp.name} ./cmd/ndwhitelist')
-            yield {
-                'repo': whitelist_repo,
-                'bin': bin_fp.name,
-            }
+        if keeptemp:
+            with NamedTemporaryFile(prefix='whitelist-', dir='/tmp', delete=False) as bin_fp:
+                run_localenv(f'go build -o {bin_fp.name} ./cmd/ndwhitelist')
+                yield {
+                    'repo': whitelist_repo,
+                    'bin': bin_fp.name,
+                }
+        else:
+            with NamedTemporaryFile(prefix='whitelist-', dir='/tmp', delete=True) as bin_fp:
+                run_localenv(f'go build -o {bin_fp.name} ./cmd/ndwhitelist')
+                yield {
+                    'repo': whitelist_repo,
+                    'bin': bin_fp.name,
+                }            
 
 
 @pytest.fixture
@@ -254,7 +292,8 @@ def chaos_node_and_tool(chaos_node, chaostool_build):
 
     with within(chaos_node['repo']):
         address = subp(
-            'docker-compose port tendermint 46657',
+            # JSG change port to current default TM port: 26657
+            'docker-compose port tendermint 26657',
             env=env,
             stderr=subprocess.STDOUT,
         )
@@ -290,7 +329,8 @@ def chaos_node_two_validator_build(chaos_go_repo):
     def gen_nodes(cmd, **kwargs):
         try:
             return subp(
-                f'pipenv run ./gen_nodes.py {cmd}',
+                # JSG run pipenv install to import modules needed by gen_nodes.py
+                f'pipenv install; pipenv run ./gen_nodes.py {cmd}',
                 stderr=subprocess.STDOUT,
                 env={
                     'LC_ALL': 'en_US.UTF-8',
@@ -338,6 +378,7 @@ def chaos_node_two_validator(chaos_node_two_validator_build):
     print("chaos_node_two_validator fixture: running run_many.sh")
     # subprocess.run always synchronously waits for the subprocess to terminate
     # that isn't acceptable here, so we fall back to a raw Popen call
+    print(f'run_many command: {[os.path.join(chaos_node_two_validator_build["scripts"], "run_many.sh",)]}')
     run_script = subprocess.Popen(
         [os.path.join(
             chaos_node_two_validator_build['scripts'],

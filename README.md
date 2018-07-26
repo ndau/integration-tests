@@ -21,11 +21,12 @@ These tools are intended for different audiences and will likely be running on s
 
 ## Running the tests
 
-Tests are handled via the `pytest` unit-testing tool. To run a basic test run, simply execute the `pytest` command from the repo root; it'll take care of everything else. However, there are several command-line flags available.
+Tests are handled via the `pytest` unit-testing tool. To run the entire test suite, simply execute the `pytest -v` command from the repo root; it'll take care of everything else. If you'd like the testing to stop at failure X, run the command `pytest -v --maxfail=X`.  If you'd like to run a particular test, run the command `pytest test_mod.py::test_func`.  There are several command-line flags available:
 
 - `--chaos-go-label`, `--chaostool-label`, `--whitelist-label` set the label of the specified repository to build and test. A label can be anything that git accepts as a label: a short hash, full hash, branch name, and tag are all valid options. All of these default to `master`.
 - `--runslow` if set runs tests which have been marked as slow. None of these tests are particularly speedy due to the heavy fixtures in play, but some are particularly poky.
 - `--skipmeta` if set skips metatests. Metatests are tests which verify that the fixtures in use to fetch and build the various dependencies are all working properly.
+- `--keeptemp` if set keeps temp files and directories around to help debug test failures.  Normally all files and directories created during testing will be removed at the end of the tests.  Temporary files will normally be named in the form of /tmp/XXXXXX_YYYYYYYY, where X's are the tool or component name, and Y's are a randomly generated string.
 
 Note that sometimes docker-compose just fails; this has often been observed in the "docker-compose port" section. It's a bit flaky; if those errors are the only failures reported, it's worth just running the tests again, because very often they'll work on the second run.
 
