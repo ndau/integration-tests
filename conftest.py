@@ -102,7 +102,7 @@ def chaos_node_build(chaos_go_repo):
             try:
                 subp(
                     build_script,
-                    env={'NDAUHOME': ndauhome, 'TMHOME': tmhome},
+                    env={'NDAUHOME': ndauhome, 'TMHOME': tmhome, 'PATH': os.environ['PATH']},
                     stderr=subprocess.STDOUT,
                 )
             except Exception as e:
@@ -235,20 +235,12 @@ def chaostool_build(keeptemp, chaostool_repo):
     """
     with within(chaostool_repo):
         run_localenv('glide install')
-        if keeptemp:
-            with NamedTemporaryFile(prefix='chaostool-', dir='/tmp', delete=False) as bin_fp:
-                run_localenv(f'go build -o {bin_fp.name} ./cmd/chaos')
-                yield {
-                    'repo': chaostool_repo,
-                    'bin': bin_fp.name,
-                }
-        else:
-            with NamedTemporaryFile(prefix='chaostool-', dir='/tmp', delete=True) as bin_fp:
-                run_localenv(f'go build -o {bin_fp.name} ./cmd/chaos')
-                yield {
-                    'repo': chaostool_repo,
-                    'bin': bin_fp.name,
-                }
+        with NamedTemporaryFile(prefix='chaostool-', dir='/tmp', delete=not keeptemp) as bin_fp:
+            run_localenv(f'go build -o {bin_fp.name} ./cmd/chaos')
+            yield {
+                'repo': chaostool_repo,
+                'bin': bin_fp.name,
+            }
 
 @pytest.fixture(scope='session')
 def whitelist_build(keeptemp, whitelist_repo):
@@ -260,20 +252,12 @@ def whitelist_build(keeptemp, whitelist_repo):
     """
     with within(whitelist_repo):
         run_localenv('dep ensure')
-        if keeptemp:
-            with NamedTemporaryFile(prefix='whitelist-', dir='/tmp', delete=False) as bin_fp:
-                run_localenv(f'go build -o {bin_fp.name} ./cmd/ndwhitelist')
-                yield {
-                    'repo': whitelist_repo,
-                    'bin': bin_fp.name,
-                }
-        else:
-            with NamedTemporaryFile(prefix='whitelist-', dir='/tmp', delete=True) as bin_fp:
-                run_localenv(f'go build -o {bin_fp.name} ./cmd/ndwhitelist')
-                yield {
-                    'repo': whitelist_repo,
-                    'bin': bin_fp.name,
-                }            
+        with NamedTemporaryFile(prefix='whitelist-', dir='/tmp', delete=not keeptemp) as bin_fp:
+            run_localenv(f'go build -o {bin_fp.name} ./cmd/ndwhitelist')
+            yield {
+                'repo': whitelist_repo,
+                'bin': bin_fp.name,
+            }
 
 
 @pytest.fixture
