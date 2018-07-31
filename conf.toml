@@ -1,11 +1,11 @@
 [chaos-go]
-repo="git@github.com:oneiro-ndev/chaosnode.git"
-logical="github.com/oneiro-ndev/chaosnode"
+repo="git@github.com:oneiro-ndev/chaos.git"
+logical="github.com/oneiro-ndev/chaos"
 label="master"
 
 [chaostool]
-repo="git@github.com:oneiro-ndev/chaostool.git"
-logical="github.com/oneiro-ndev/chaostool"
+repo="git@github.com:oneiro-ndev/chaos.git"
+logical="github.com/oneiro-ndev/chaos"
 label="master"
 
 [whitelist]

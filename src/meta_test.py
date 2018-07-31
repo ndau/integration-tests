@@ -60,7 +60,8 @@ def test_chaos_node(chaos_node):
 
     try:
         address = subp(
-            'docker-compose port tendermint 46657',
+            # JSG change port to current default TM port: 26657
+            'docker-compose port tendermint 26657',
             env=env,
             stderr=subprocess.STDOUT,
         )
