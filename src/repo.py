@@ -3,6 +3,7 @@ import shutil
 import subprocess
 from contextlib import contextmanager
 from tempfile import mkdtemp
+import pdb
 
 from src.subp import subp
 
@@ -47,7 +48,7 @@ def repo(remote, local=None, label='master', cleanup=True):
         local = mkdtemp()
     else:
         local = os.path.abspath(local)
-
+#    pdb.set_trace()
     if not os.path.exists(local):
         os.makedirs(os.path.dirname(local), exist_ok=True)
         subp(f'git clone {remote} {local}')
@@ -67,11 +68,12 @@ def repo(remote, local=None, label='master', cleanup=True):
 
     try:
         with within(local):
+#            pdb.set_trace()
             if len(subp('git status --porcelain')) == 0:
                 stashed = False
             else:
                 stashed = True
-                subp('git stash push --include-untracked')
+#                subp('git stash push --include-untracked')
 
             current_branch = subp('git rev-parse --abbrev-ref HEAD')
             if label == current_branch:
@@ -87,10 +89,12 @@ def repo(remote, local=None, label='master', cleanup=True):
                     subp(f'git checkout -f {current_branch}')
                 if stashed:
                     try:
-                        subp(
-                            'git stash pop',
-                            stderr=subprocess.STDOUT,
-                        )
+#                        pdb.set_trace()
+                        stashed = False
+                        # subp(
+                        #     'git stash pop',
+                        #     stderr=subprocess.STDOUT,
+                        # )
                     except subprocess.CalledProcessError as e:
                         if 'No stash entries found' in e.stdout:
                             pass

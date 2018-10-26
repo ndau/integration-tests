@@ -31,11 +31,17 @@ def pytest_addoption(parser):
 # JSG add option to keep temp files and dirs if debugging failures
     parser.addoption("--keeptemp", action="store_true",
                      default=False, help="keep temporary files for debugging")
+    parser.addoption("--run_kub", action="store_true",
+                     default=False, help="keep temporary files for debugging")
 
 @pytest.fixture(scope='session')
 def keeptemp(request):
     return request.config.getoption("--keeptemp")
 
+@pytest.fixture(scope='session')
+def run_kub(request):
+    return request.config.getoption("--run_kub")
+    
 def pytest_collection_modifyitems(config, items):
     """Pytest func to adjust which tests are run."""
     if not config.getoption("--runslow"):
@@ -63,6 +69,7 @@ def chaos_go_repo(request):
 @pytest.fixture(scope='session')
 def chaostool_repo(request):
     """Return the path at which chaostool is available."""
+#    pdb.set_trace()
     label = request.config.getoption('--chaostool-label')
     conf = load(chaostool_label=label)['chaostool']
     with go_repo(conf['repo'], conf['logical'], conf['label']) as path:
@@ -79,7 +86,7 @@ def whitelist_repo(request):
 
 
 @pytest.fixture(scope='session')
-def chaos_node_build(chaos_go_repo):
+def chaos_node_build(run_kub, chaos_go_repo):
     """
     Build a single chaos node.
 
@@ -100,11 +107,12 @@ def chaos_node_build(chaos_go_repo):
         print(f'build tmhome: {tmhome}')
         with within(chaos_go_repo):            
             try:
-                subp(
-                    build_script,
-                    env={'NDAUHOME': ndauhome, 'TMHOME': tmhome, 'PATH': os.environ['PATH']},
-                    stderr=subprocess.STDOUT,
-                )
+                if not run_kub:
+                    subp(
+                        build_script,
+                        env={'NDAUHOME': ndauhome, 'TMHOME': tmhome, 'PATH': os.environ['PATH']},
+                        stderr=subprocess.STDOUT,
+                    )
             except Exception as e:
                 print(e)
                 raise
@@ -122,7 +130,50 @@ def chaos_node_build(chaos_go_repo):
 
 
 @pytest.fixture
-def chaos_node(keeptemp, chaos_node_build):
+def chaos_node_exists(keeptemp):
+    """
+    Check if we can communicate with chaos node.
+
+    Because chaos nodes are stateful, we need to init/run/reset them for
+    every test. This fixture accomplishes that.
+    """
+    def run_cmd(cmd, **kwargs):
+        print(f'cmd: {cmd}')
+        try:
+#            pdb.set_trace()
+            foo = subp(
+                cmd,
+                env={'KUBECONFIG': os.environ['KUBECONFIG'], 'PATH': os.environ['PATH']},
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+            return foo
+        except subprocess.CalledProcessError as e:
+            print('--STDOUT--')
+            print(e.stdout)
+            print('--RETURN CODE--')
+            print(e.returncode)
+
+            raise
+
+    print("chaos node exists")
+    address = run_cmd('kubectl get nodes -o jsonpath=\'{.items[*].status.addresses[?(@.type=="ExternalIP")].address}\' | tr " " "\n" | head -n 1 | tr -d "[:space:]"')
+    print(f'address: {address}')
+    devnet0_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' devnet-0-nodegroup-chaos-tendermint-service')
+    devnet1_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' devnet-1-nodegroup-chaos-tendermint-service')
+    print(f'rpc: {devnet0_rpc}')
+    devnet0_res = run_cmd(f'curl -s http://{address}:{devnet0_rpc}/status')
+    devnet1_res = run_cmd(f'curl -s http://{address}:{devnet1_rpc}/status')
+    print(f'devnet0_res: {devnet0_res}')
+    print(f'devnet1_res: {devnet1_res}')
+    return {
+        'address': address,
+        'devnet0_rpc': devnet0_rpc,
+        'devnet1_rpc': devnet1_rpc
+    }
+
+@pytest.fixture
+def chaos_node(keeptemp, run_kub, chaos_node_build):
     """
     Initialize and run a chaos node for this test.
 
@@ -149,56 +200,57 @@ def chaos_node(keeptemp, chaos_node_build):
             print(e.returncode)
 
             raise
+#    pdb.set_trace()
+    if not run_kub:
+        print("chaos_node fixture: running init.sh")
+        print(f'init.sh: {os.path.join("bin", "init.sh")}')
+        print(f'cwd: {chaos_node_build["repo"]}')
+        print(f'ndauhome: {chaos_node_build["ndauhome"]}')
+        print(f'tmhome: {chaos_node_build["tmhome"]}')
+        run_cmd(os.path.join('bin', 'init.sh'))
+        print("chaos_node fixture: init.sh finished")
 
-    print("chaos_node fixture: running init.sh")
-    print(f'init.sh: {os.path.join("bin", "init.sh")}')
-    print(f'cwd: {chaos_node_build["repo"]}')
-    print(f'ndauhome: {chaos_node_build["ndauhome"]}')
-    print(f'tmhome: {chaos_node_build["tmhome"]}')
-    run_cmd(os.path.join('bin', 'init.sh'))
-    print("chaos_node fixture: init.sh finished")
+        print("chaos_node fixture: running run.sh")
+        print(f'run.sh: {[os.path.join(chaos_node_build["repo"], "bin", "run.sh")]}')
+        # subprocess.run always synchronously waits for the subprocess to terminate
+        # that isn't acceptable here, so we fall back to a raw Popen call
+        run_script = subprocess.Popen(
+            [os.path.join(chaos_node_build['repo'], 'bin', 'run.sh')],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            cwd=chaos_node_build['repo'],
+            encoding='utf8',
+            env=dict(
+                NDAUHOME=chaos_node_build['ndauhome'],
+                TMHOME=chaos_node_build['tmhome'],
+                PATH=os.environ['PATH']
+            ),
+        )
+        # starting tendermint takes a few seconds before it's ready to receive
+        # incoming connections. Therefore, just keep delaying until it succeeds,
+        # up to one minute.
+        upcheck_interval = 2
+        for attempt in range(0, 60, upcheck_interval):
+            run_status = run_script.poll()
+            if run_status is not None:
+                raise Exception(
+                    f"run.sh exited unexpectedly with code {run_status}"
+                )
+            print(f'Attempt to start chaos node @ {attempt}s:')
+            try:
+                # JSG change port to current default TM port: 26657
+                address = run_cmd('docker-compose port tendermint 26657')
+                run_cmd(f'curl -s {address}/status')
+            except subprocess.CalledProcessError as e:
+                pass
+            else:
+                break
 
-    print("chaos_node fixture: running run.sh")
-    print(f'run.sh: {[os.path.join(chaos_node_build["repo"], "bin", "run.sh")]}')
-    # subprocess.run always synchronously waits for the subprocess to terminate
-    # that isn't acceptable here, so we fall back to a raw Popen call
-    run_script = subprocess.Popen(
-        [os.path.join(chaos_node_build['repo'], 'bin', 'run.sh')],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        cwd=chaos_node_build['repo'],
-        encoding='utf8',
-        env=dict(
-            NDAUHOME=chaos_node_build['ndauhome'],
-            TMHOME=chaos_node_build['tmhome'],
-            PATH=os.environ['PATH']
-        ),
-    )
-    # starting tendermint takes a few seconds before it's ready to receive
-    # incoming connections. Therefore, just keep delaying until it succeeds,
-    # up to one minute.
-    upcheck_interval = 2
-    for attempt in range(0, 60, upcheck_interval):
-        run_status = run_script.poll()
-        if run_status is not None:
-            raise Exception(
-                f"run.sh exited unexpectedly with code {run_status}"
-            )
-        print(f'Attempt to start chaos node @ {attempt}s:')
-        try:
-            # JSG change port to current default TM port: 26657
-            address = run_cmd('docker-compose port tendermint 26657')
-            run_cmd(f'curl -s {address}/status')
-        except subprocess.CalledProcessError as e:
-            pass
-        else:
-            break
+            time.sleep(upcheck_interval)
 
-        time.sleep(upcheck_interval)
+        print("chaos_node fixture: run.sh running")
 
-    print("chaos_node fixture: run.sh running")
-
-    print("chaos_node fixture: yielding")
+        print("chaos_node fixture: yielding")
     try:
         yield chaos_node_build
     finally:
@@ -208,8 +260,9 @@ def chaos_node(keeptemp, chaos_node_build):
             run_cmd(os.path.join('bin', 'reset.sh'))
             print("chaos_node fixture: reset.sh finished")
 
-        if run_script.poll() is None:
-            run_script.terminate()
+        if not run_kub:
+            if run_script.poll() is None:
+                run_script.terminate()
 
 
 def run_localenv(cmd):
@@ -261,7 +314,7 @@ def whitelist_build(keeptemp, whitelist_repo):
 
 
 @pytest.fixture
-def chaos_node_and_tool(chaos_node, chaostool_build):
+def chaos_node_and_tool(run_kub, chaos_node, chaostool_build, chaos_node_exists):
     """
     Run a chaos node, and configure the chaos tool to connect to it.
 
@@ -274,22 +327,24 @@ def chaos_node_and_tool(chaos_node, chaostool_build):
         'PATH': os.environ['PATH'],
     }
 
-    with within(chaos_node['repo']):
-        address = subp(
-            # JSG change port to current default TM port: 26657
-            'docker-compose port tendermint 26657',
-            env=env,
-            stderr=subprocess.STDOUT,
-        )
+    if run_kub:
+        address = 'http://' + chaos_node_exists['address'] + ':' + chaos_node_exists['devnet0_rpc']
+    else:
+        with within(chaos_node['repo']):
+            address = subp(
+                # JSG change port to current default TM port: 26657
+                'docker-compose port tendermint 26657',
+                env=env,
+                stderr=subprocess.STDOUT,
+            )
 
-    if '://' not in address:
-        address = 'http://' + address
-
+        if '://' not in address:
+            address = 'http://' + address
     subp(
         f'{chaostool_build["bin"]} conf {address}',
         env=env,
     )
-
+#    pdb.set_trace()
     return {
         'node': chaos_node,
         'tool': chaostool_build,
