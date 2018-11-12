@@ -209,7 +209,7 @@ def test_get_history(chaos):
         for line in chaos('history historic -k counter -s').splitlines()
         if len(line.strip()) > 0 and 'Height' not in line
     ]
-    assert history == [str(i) for i in reversed(range(5))]
+    assert history == [str(i) for i in range(5)]
 
 
 def test_reject_non_whitelisted_scps(chaos_and_whitelist):
