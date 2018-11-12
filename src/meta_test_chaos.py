@@ -14,6 +14,7 @@ from src.subp import subp
 
 @pytest.mark.meta
 def test_chaos_go_repo(chaos_go_repo, request):
+#    pdb.set_trace()
     requested_label = request.config.getoption('--chaos-go-label')
     requested_hash = subp(
         f'git log {requested_label} -1 --pretty=tformat:"%H"'

@@ -62,6 +62,7 @@ def repo(remote, local=None, label='master', cleanup=True):
         try:
             with within(local):
                 subp('git status --porcelain')
+#            pdb.set_trace()
         except subprocess.CalledProcessError:
             # we can be pretty sure this isn't a repo
             raise Exception(f"'{local}' is not empty and not a git repo")
@@ -86,7 +87,10 @@ def repo(remote, local=None, label='master', cleanup=True):
                 yield local
             finally:
                 if ch_branch:
-                    subp(f'git checkout -f {current_branch}')
+                    pdb.set_trace()
+                    subp(f'git checkout -f {current_branch}',
+                        stderr=subprocess.STDOUT,
+                    )
                 if stashed:
                     try:
 #                        pdb.set_trace()
@@ -111,7 +115,11 @@ def within(path):
     """Temporarily operate within another directory."""
     current = os.getcwd()
     os.chdir(path)
+    print(f'cd into: {path}')
+#    pdb.set_trace()
     try:
         yield
     finally:
+        print(f'cd back to: {current}')
         os.chdir(current)
+#        pdb.set_trace()

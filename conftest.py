@@ -14,7 +14,7 @@ import pytest
 from src.conf import load
 from src.repo import go_repo, within
 from src.subp import subp
-
+from pathlib import Path
 
 def pytest_addoption(parser):
     """See https://docs.pytest.org/en/latest/example/simple.html."""
@@ -24,6 +24,10 @@ def pytest_addoption(parser):
                      help="Label to use for chaostool")
     parser.addoption("--whitelist-label", action="store", default="master",
                      help="Label to use for whitelist")
+    parser.addoption("--ndau-go-label", action="store", default="master",
+                     help="Label to use for ndau-go")
+    parser.addoption("--ndautool-label", action="store", default="master",
+                     help="Label to use for ndautool")
     parser.addoption("--runslow", action="store_true",
                      default=False, help="run slow tests")
     parser.addoption("--skipmeta", action="store_true",
@@ -81,6 +85,24 @@ def whitelist_repo(request):
     """Return the path at which whitelist is available."""
     label = request.config.getoption('--whitelist-label')
     conf = load(whitelist_label=label)['whitelist']
+    with go_repo(conf['repo'], conf['logical'], conf['label']) as path:
+        yield path
+
+@pytest.fixture(scope='session')
+def ndau_go_repo(request):
+    """Return the path at which ndau-go is available."""
+    label = request.config.getoption('--ndau-go-label')
+    conf = load(ndau_go_label=label)['ndau-go']
+    with go_repo(conf['repo'], conf['logical'], conf['label']) as path:
+        yield path
+
+
+@pytest.fixture(scope='session')
+def ndautool_repo(request):
+    """Return the path at which ndautool is available."""
+#    pdb.set_trace()
+    label = request.config.getoption('--ndautool-label')
+    conf = load(ndautool_label=label)['ndautool']
     with go_repo(conf['repo'], conf['logical'], conf['label']) as path:
         yield path
 
@@ -264,6 +286,184 @@ def chaos_node(keeptemp, run_kub, chaos_node_build):
             if run_script.poll() is None:
                 run_script.terminate()
 
+@pytest.fixture(scope='session')
+def ndau_node_build(run_kub, ndau_go_repo):
+    """
+    Build a single ndau node.
+
+    Because ndau nodes are stateful, we need to init/run/reset them for
+    every test to ensure that the tests each have clean slates. However,
+    we only need to actually build the project once per test session.
+
+    That's what this fixture does.
+    """
+    build_script = os.path.join(ndau_go_repo, 'bin', 'build.sh')
+    try:
+        # JSG Dont use TemporaryDirectroy as it will always get deleted, mkdtemp will create temp directory but not delete, this will get
+        # cleaned up in reset.sh if --keeptemp option is not set
+        # with TemporaryDirectory(prefix='ndauhome-', dir='/tmp') as ndauhome, TemporaryDirectory(prefix='tmhome-', dir='/tmp') as tmhome, within(ndau_go_repo):  # noqa: E501
+        ndauhome = tempfile.mkdtemp(prefix='ndauhome-', dir='/tmp')
+        tmhome = tempfile.mkdtemp(prefix='tmhome-', dir='/tmp')
+        print(f'build ndauhome: {ndauhome}')
+        print(f'build tmhome: {tmhome}')
+        with within(ndau_go_repo):            
+            try:
+                if not run_kub:
+                    subp(
+                        build_script,
+                        env={'NDAUHOME': ndauhome, 'TMHOME': tmhome, 'PATH': os.environ['PATH']},
+                        stderr=subprocess.STDOUT,
+                    )
+            except Exception as e:
+                print(e)
+                raise
+            yield {
+                'repo': ndau_go_repo,
+                'ndauhome': ndauhome,
+                'tmhome': tmhome,
+            }
+    except FileNotFoundError:
+        # we expect a FileNotFoundError here: the current behavior of reset.sh
+        # is to delete $TMHOME and $NDAUHOME. That's fine, though it confuses
+        # TemporaryDirectory, which expects to need to clean up after itself.
+        # We therefore catch this exception and do nothing about it.
+        pass
+
+@pytest.fixture
+def ndau_node_exists(keeptemp):
+    """
+    Check if we can communicate with ndau node.
+
+    Because ndau nodes are stateful, we need to init/run/reset them for
+    every test. This fixture accomplishes that.
+    """
+    def run_cmd(cmd, **kwargs):
+        print(f'cmd: {cmd}')
+        try:
+#            pdb.set_trace()
+            foo = subp(
+                cmd,
+                env={'KUBECONFIG': os.environ['KUBECONFIG'], 'PATH': os.environ['PATH']},
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+            return foo
+        except subprocess.CalledProcessError as e:
+            print('--STDOUT--')
+            print(e.stdout)
+            print('--RETURN CODE--')
+            print(e.returncode)
+
+            raise
+
+    print("ndau node exists")
+    address = run_cmd('kubectl get nodes -o jsonpath=\'{.items[*].status.addresses[?(@.type=="ExternalIP")].address}\' | tr " " "\n" | head -n 1 | tr -d "[:space:]"')
+    print(f'address: {address}')
+    devnet0_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' devnet-0-nodegroup-ndau-tendermint-service')
+    devnet1_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' devnet-1-nodegroup-ndau-tendermint-service')
+    print(f'rpc: {devnet0_rpc}')
+    devnet0_res = run_cmd(f'curl -s http://{address}:{devnet0_rpc}/status')
+    devnet1_res = run_cmd(f'curl -s http://{address}:{devnet1_rpc}/status')
+    print(f'devnet0_res: {devnet0_res}')
+    print(f'devnet1_res: {devnet1_res}')
+    return {
+        'address': address,
+        'devnet0_rpc': devnet0_rpc,
+        'devnet1_rpc': devnet1_rpc
+    }
+
+@pytest.fixture
+def ndau_node(keeptemp, run_kub, ndau_node_build):
+    """
+    Initialize and run a ndau node for this test.
+
+    Because ndau nodes are stateful, we need to init/run/reset them for
+    every test. This fixture accomplishes that.
+    """
+    def run_cmd(cmd, **kwargs):
+        try:
+            return subp(
+                cmd,
+                env=dict(
+                    NDAUHOME=ndau_node_build['ndauhome'],
+                    TMHOME=ndau_node_build['tmhome'],
+                    PATH=os.environ['PATH']
+                ),
+                stderr=subprocess.STDOUT,
+                cwd=ndau_node_build['repo'],
+                **kwargs,
+            )
+        except subprocess.CalledProcessError as e:
+            print('--STDOUT--')
+            print(e.stdout)
+            print('--RETURN CODE--')
+            print(e.returncode)
+
+            raise
+#    pdb.set_trace()
+    if not run_kub:
+        print("ndau_node fixture: running init.sh")
+        print(f'init.sh: {os.path.join("bin", "init.sh")}')
+        print(f'cwd: {ndau_node_build["repo"]}')
+        print(f'ndauhome: {ndau_node_build["ndauhome"]}')
+        print(f'tmhome: {ndau_node_build["tmhome"]}')
+        run_cmd(os.path.join('bin', 'init.sh'))
+        print("ndau_node fixture: init.sh finished")
+
+        print("ndau_node fixture: running run.sh")
+        print(f'run.sh: {[os.path.join(ndau_node_build["repo"], "bin", "run.sh")]}')
+        # subprocess.run always synchronously waits for the subprocess to terminate
+        # that isn't acceptable here, so we fall back to a raw Popen call
+        run_script = subprocess.Popen(
+            [os.path.join(ndau_node_build['repo'], 'bin', 'run.sh')],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            cwd=ndau_node_build['repo'],
+            encoding='utf8',
+            env=dict(
+                NDAUHOME=ndau_node_build['ndauhome'],
+                TMHOME=ndau_node_build['tmhome'],
+                PATH=os.environ['PATH']
+            ),
+        )
+        # starting tendermint takes a few seconds before it's ready to receive
+        # incoming connections. Therefore, just keep delaying until it succeeds,
+        # up to one minute.
+        upcheck_interval = 2
+        for attempt in range(0, 60, upcheck_interval):
+            run_status = run_script.poll()
+            if run_status is not None:
+                raise Exception(
+                    f"run.sh exited unexpectedly with code {run_status}"
+                )
+            print(f'Attempt to start ndau node @ {attempt}s:')
+            try:
+                # JSG change port to current default TM port: 26657
+                address = run_cmd('docker-compose port tendermint 26657')
+                run_cmd(f'curl -s {address}/status')
+            except subprocess.CalledProcessError as e:
+                pass
+            else:
+                break
+
+            time.sleep(upcheck_interval)
+
+        print("ndau_node fixture: run.sh running")
+
+        print("ndau_node fixture: yielding")
+    try:
+        yield ndau_node_build
+    finally:
+        if not keeptemp:
+            print("ndau_node fixture: running reset.sh")
+            # JSG only run reset.sh if keeptemp is false
+            run_cmd(os.path.join('bin', 'reset.sh'))
+            print("ndau_node fixture: reset.sh finished")
+
+        if not run_kub:
+            if run_script.poll() is None:
+                run_script.terminate()
+
 
 def run_localenv(cmd):
     """Run a command in the local environment."""
@@ -312,6 +512,22 @@ def whitelist_build(keeptemp, whitelist_repo):
                 'bin': bin_fp.name,
             }
 
+@pytest.fixture(scope='session')
+def ndautool_build(keeptemp, ndautool_repo):
+    """
+    Build the ndau tool.
+
+    Note that this doesn't perform any configuration;
+    it just builds the binary.
+    """
+    with within(ndautool_repo):
+        run_localenv('glide install')
+        with NamedTemporaryFile(prefix='ndautool-', dir='/tmp', delete=not keeptemp) as bin_fp:
+            run_localenv(f'go build -o {bin_fp.name} ./cmd/ndau')
+            yield {
+                'repo': ndautool_repo,
+                'bin': bin_fp.name,
+            }
 
 @pytest.fixture
 def chaos_node_and_tool(run_kub, chaos_node, chaostool_build, chaos_node_exists):
@@ -348,6 +564,44 @@ def chaos_node_and_tool(run_kub, chaos_node, chaostool_build, chaos_node_exists)
     return {
         'node': chaos_node,
         'tool': chaostool_build,
+        'env': env,
+    }
+
+@pytest.fixture
+def ndau_node_and_tool(run_kub, ndau_node, ndautool_build, ndau_node_exists):
+    """
+    Run a ndau node, and configure the ndau tool to connect to it.
+
+    This necessarily includes the ndau node; depend only on this fixture,
+    not on this plus ndau_node.
+    """
+    env = {
+        'TMHOME': ndau_node['tmhome'],
+        'NDAUHOME': ndau_node['ndauhome'],
+        'PATH': os.environ['PATH'],
+    }
+
+    if run_kub:
+        address = 'http://' + ndau_node_exists['address'] + ':' + ndau_node_exists['devnet0_rpc']
+    else:
+        with within(ndau_node['repo']):
+            address = subp(
+                # JSG change port to current default TM port: 26657
+                'docker-compose port tendermint 26657',
+                env=env,
+                stderr=subprocess.STDOUT,
+            )
+
+        if '://' not in address:
+            address = 'http://' + address
+    subp(
+        f'{ndautool_build["bin"]} conf {address}',
+        env=env,
+    )
+#    pdb.set_trace()
+    return {
+        'node': ndau_node,
+        'tool': ndautool_build,
         'env': env,
     }
 
