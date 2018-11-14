@@ -45,35 +45,43 @@ def test_get_status(ndau):
     assert info['node_info']['moniker'] == 'devnet-0'
 
 def test_create_account(ndau, _random_string):
-    """Create account and check attributes"""
+    """Create account, RFE to it, and check attributes"""
 #    pdb.set_trace()
     conf_path = ndau('conf-path')
     f = open(conf_path, "a")
     # write RFE address and keys into ndautool.toml file
     f.write("[rfe]\n")
-    f.write("address = \"ndnd8tjeg4n9jb8m9zcepksqjkiegrmewmajchjbi28v8c4p\"\n")
-    f.write("keys = [\"npvtayjadtcbicwwxjh2v4m75gjk22isu2gydqufu3yiyyifb9rittexcyaeczphffzit96bc8fytjf2qssqefp6czwivh4bt7rs26v8fx78n5rjpts868fn4src\", \"npvtayjadtcbica87enrkc8wjxzm4xiszietb4ktb5i3s98ezttsftastntbuvq4pwc5szgufwajx6kiqvsw87hbf635234u3zmmhqe6yjtqgsbqath3ewe8dg8j\"]")
+    f.write("address = \"ndnki6pnav63phcb5gk9wyw8vme7uynm25et72ed9zn8skd4\"\n")
+    f.write("keys = [\"npvtayjadtcbid6g7nm4xey8ff2vd5vs3fxaev6gdhhjsmv8zvp997rm69miahnxms7fi5k6rkkrecp7br3rwdd8frxdiexjvcdcf9itqaz578mqu6fk82cgce3s\"]")
     f.close()
     f = open(conf_path, "r")
     conf_lines = f.readlines()
     f.close()
     # make sure RFE address exists in ndautool.toml file
-    assert any("ndnd8tjeg4n9jb8m9zcepksqjkiegrmewmajchjbi28v8c4p" in line for line in conf_lines)
+    assert any("ndnki6pnav63phcb5gk9wyw8vme7uynm25et72ed9zn8skd4" in line for line in conf_lines)
     known_ids = ndau('account list').splitlines()
+    # make sure account does not already exist
     assert not any(_random_string in id_line for id_line in known_ids)
+    # create new randomly named account
     ndau(f'account new {_random_string}')
     new_ids = ndau('account list').splitlines()
+    # check that account now exists
     assert any(_random_string in id_line for id_line in new_ids)
     id_line = [s for s in new_ids if _random_string in s]
+    # check that account is not claimed (has 0 tx keys)
     assert '(0 tr keys)' in id_line[0]
     account_data = json.loads(ndau(f'account query {_random_string}'))
     assert account_data['validationKeys'] == None
+    # RFE to account 10 ndau
     ndau(f'rfe 10 {_random_string}')
     account_data = json.loads(ndau(f'account query {_random_string}'))
+    # check that account balance is 10 ndau
     assert account_data['balance'] == 1000000000
+    # claim account, and check that account now has validation keys
     ndau(f'account claim {_random_string}')
     account_data = json.loads(ndau(f'account query {_random_string}'))
     assert account_data['validationKeys'] != None
+    # check that 1 napu tx fee was deducted from account
     assert account_data['balance'] == 999999999
 
 
