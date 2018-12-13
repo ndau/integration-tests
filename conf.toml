@@ -12,3 +12,13 @@ label="master"
 repo="git@github.com:oneiro-ndev/whitelist.git"
 logical="github.com/oneiro-ndev/whitelist"
 label="master"
+
+[ndau-go]
+repo="git@github.com:oneiro-ndev/ndau.git"
+logical="github.com/oneiro-ndev/ndau"
+label="master"
+
+[ndautool]
+repo="git@github.com:oneiro-ndev/ndau.git"
+logical="github.com/oneiro-ndev/ndau"
+label="master"

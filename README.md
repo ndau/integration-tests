@@ -28,7 +28,7 @@ Tests are handled via the `pytest` unit-testing tool. To run the entire test sui
 - `--skipmeta` if set skips metatests. Metatests are tests which verify that the fixtures in use to fetch and build the various dependencies are all working properly.
 - `--keeptemp` if set keeps temp files and directories around to help debug test failures.  Normally all files and directories created during testing will be removed at the end of the tests.  Temporary files will normally be named in the form of /tmp/XXXXXX_YYYYYYYY, where X's are the tool or component name, and Y's are a randomly generated string.
 
-Note that sometimes docker-compose just fails; this has often been observed in the "docker-compose port" section. It's a bit flaky; if those errors are the only failures reported, it's worth just running the tests again, because very often they'll work on the second run.
+- `--run_kub` Instead of building chaosnode and running locally, tries to connect to existing Kubernetes instance of chaosnode in devnet and runs tests with local docker built chaostool.
 
 ## Testing Strategy
 
