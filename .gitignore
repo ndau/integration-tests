@@ -1,2 +1,11 @@
+# macOS
+.DS_Store
+
+# python
 .pytest_cache/
+__pycache__/
+
+# editors
 .vscode/
+*~
+.#*
