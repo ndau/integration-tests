@@ -19,9 +19,12 @@ def go_repo(remote, local, label='master'):
 
     Returns the full local path to the repository.
     """
-    gopath = os.path.expandvars("$GOPATH")
+    output = subprocess.check_output(['go', 'env', 'GOPATH'])
+    gopath = output.decode('utf-8').rstrip()
     if len(gopath) == 0:
-        raise Exception("$GOPATH not set")
+        raise Exception("go env GOPATH is empty")
+    if gopath.find(':') >= 0:
+        raise Exception("multi-directory GOPATH not supported")
     with repo(
         remote,
         os.path.join(gopath, 'src', local),
