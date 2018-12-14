@@ -81,16 +81,17 @@ def repo(remote, local=None, label='master', cleanup=True):
                 ch_branch = False
             else:
                 ch_branch = True
-                subp(f'git checkout {label}')
+                # subp(f'git checkout {label}', stderr=subprocess.STDOUT)
 
             try:
                 yield local
             finally:
                 if ch_branch:
-                    pdb.set_trace()
-                    subp(f'git checkout -f {current_branch}',
-                        stderr=subprocess.STDOUT,
-                    )
+                    ch_branch = False
+                    # pdb.set_trace()
+                    # subp(f'git checkout -f {current_branch}',
+                    #     stderr=subprocess.STDOUT,
+                    # )
                 if stashed:
                     try:
 #                        pdb.set_trace()

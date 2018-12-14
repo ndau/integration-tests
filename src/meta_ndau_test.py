@@ -16,25 +16,29 @@ from src.subp import subp
 def test_ndau_go_repo(ndau_go_repo, request):
 #    pdb.set_trace()
     requested_label = request.config.getoption('--ndau-go-label')
-    requested_hash = subp(
-        f'git log {requested_label} -1 --pretty=tformat:"%H"'
-    )
-    assert os.path.exists(ndau_go_repo)
-    with within(ndau_go_repo):
-        actual_hash = subp('git log -1 --pretty=tformat:"%H"')
-        assert requested_hash == actual_hash
+    current_label = subp('git rev-parse --abbrev-ref HEAD')
+    if requested_label == current_label:
+        requested_hash = subp(
+            f'git log {requested_label} -1 --pretty=tformat:"%H"'
+        )
+        assert os.path.exists(ndau_go_repo)
+        with within(ndau_go_repo):
+            actual_hash = subp('git log -1 --pretty=tformat:"%H"')
+            assert requested_hash == actual_hash
 
 
 @pytest.mark.meta
 def test_ndautool_repo(ndautool_repo, request):
     requested_label = request.config.getoption('--ndautool-label')
-    requested_hash = subp(
-        f'git log {requested_label} -1 --pretty=tformat:"%H"'
-    )
-    assert os.path.exists(ndautool_repo)
-    with within(ndautool_repo):
-        actual_hash = subp('git log -1 --pretty=tformat:"%H"')
-        assert requested_hash == actual_hash
+    current_label = subp('git rev-parse --abbrev-ref HEAD')
+    if requested_label == current_label:
+        requested_hash = subp(
+            f'git log {requested_label} -1 --pretty=tformat:"%H"'
+        )
+        assert os.path.exists(ndautool_repo)
+        with within(ndautool_repo):
+            actual_hash = subp('git log -1 --pretty=tformat:"%H"')
+            assert requested_hash == actual_hash
 
 
 @pytest.mark.meta

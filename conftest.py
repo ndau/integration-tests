@@ -487,7 +487,7 @@ def chaostool_build(keeptemp, chaostool_repo):
     it just builds the binary.
     """
     with within(chaostool_repo):
-        run_localenv('glide install')
+        run_localenv('dep ensure')
         with NamedTemporaryFile(prefix='chaostool-', dir='/tmp', delete=not keeptemp) as bin_fp:
             run_localenv(f'go build -o {bin_fp.name} ./cmd/chaos')
             yield {
@@ -521,7 +521,7 @@ def ndautool_build(keeptemp, ndautool_repo):
     it just builds the binary.
     """
     with within(ndautool_repo):
-        run_localenv('glide install')
+        run_localenv('dep ensure')
         with NamedTemporaryFile(prefix='ndautool-', dir='/tmp', delete=not keeptemp) as bin_fp:
             run_localenv(f'go build -o {bin_fp.name} ./cmd/ndau')
             yield {

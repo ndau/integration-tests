@@ -4,8 +4,8 @@ logical="github.com/oneiro-ndev/chaos"
 label="master"
 
 [chaostool]
-repo="git@github.com:oneiro-ndev/chaos.git"
-logical="github.com/oneiro-ndev/chaos"
+repo="git@github.com:oneiro-ndev/commands.git"
+logical="github.com/oneiro-ndev/commands"
 label="master"
 
 [whitelist]
@@ -19,6 +19,6 @@ logical="github.com/oneiro-ndev/ndau"
 label="master"
 
 [ndautool]
-repo="git@github.com:oneiro-ndev/ndau.git"
-logical="github.com/oneiro-ndev/ndau"
+repo="git@github.com:oneiro-ndev/commands.git"
+logical="github.com/oneiro-ndev/commands"
 label="master"
