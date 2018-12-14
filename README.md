@@ -12,12 +12,14 @@ These tools are intended for different audiences and will likely be running on s
 
 ## Getting Started
 
-1. Install [python3.6](https://www.python.org/downloads/)
-2. Install pipenv: `pip3 install pipenv`
-3. cd into the repo root
-4. Install dependencies: `pipenv sync`
-5. Load the environment: `pipenv shell`
-6. You're all set!
+1. Install [python3.6 or later](https://www.python.org/downloads/)
+1. Install `pipenv`: `pip3 install pipenv`
+1. Install `pytest`: `pip3 install pytest`
+1. Install `toml`: `pip3 install toml`
+1. Clone this repo into `~/go/src/github.com/oneiro-ndev` so that the repo is next to the `chaos` and `ndau` repos
+1. `cd` into the repo root
+1. Install dependencies: `pipenv sync` or `./pipenv.sh sync`
+1. Optional: Load the environment: `pipenv shell` or `./pipenv.sh shell`
 
 ## Running the tests
 
