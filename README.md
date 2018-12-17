@@ -16,6 +16,16 @@ These tools are intended for different audiences and will likely be running on s
 1. Install `pipenv`: `pip3 install pipenv`
 1. Install `pytest`: `pip3 install pytest`
 1. Install `toml`: `pip3 install toml`
+1. Set up Kubernetes tools (needed for running `pytest -v --run_kub`)
+    1. Install `kubectl`: `brew install kubernetes-cli`
+    1. Create the directory `~/.kube`
+    1. Get the `deploy_security` tarball from Oneiro's 1password account
+        1. Extract it into a temp directory
+        1. Copy the files from `kubectl/*` into `~/.kube`
+    1. Put the following line in `~/.kube/dev.yml`, after the existing `- context` sections, and before the `users:` line:
+       - `current-context: dev.cluster.ndau.tech`
+    1. Add `export KUBECONFIG=~/.kube/dev.yaml` to your `.bash_profile` and restart your Terminal
+    1. Test the Kubernetes tools install by running `kubectl get nodes`
 1. Clone this repo into `~/go/src/github.com/oneiro-ndev` so that it is next to the `chaos` and `ndau` repos
 1. `cd` into the repo root
 1. Install dependencies: `pipenv sync`
