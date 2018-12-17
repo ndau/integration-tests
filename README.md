@@ -22,7 +22,7 @@ These tools are intended for different audiences and will likely be running on s
     1. Get the `deploy_security` tarball from Oneiro's 1password account
         1. Extract it into a temp directory
         1. Copy the files from `kubectl/*` into `~/.kube`
-    1. Put the following line in `~/.kube/dev.yml`, after the existing `- context` sections, and before the `users:` line:
+    1. Put the following line in `~/.kube/dev.yaml`, after the existing `- context` sections, and before the `users:` line:
        - `current-context: dev.cluster.ndau.tech`
     1. Add `export KUBECONFIG=~/.kube/dev.yaml` to your `.bash_profile` and restart your Terminal
     1. Test the Kubernetes tools install by running `kubectl get nodes`
