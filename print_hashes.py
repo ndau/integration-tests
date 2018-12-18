@@ -4,9 +4,9 @@
 Utility for printing the git hashes of the repos and branches defined in the conf.toml file.
 """
 
-from src.tools.conf import load
-from src.tools.repo import go_repo
-from src.tools.subp import subp
+from src.util.conf import load
+from src.util.repo import go_repo
+from src.util.subp import subp
 
 
 def hashes(conf):

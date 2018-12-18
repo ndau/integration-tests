@@ -8,8 +8,8 @@ from glob import glob
 import pdb
 import pytest
 
-from src.tools.repo import within
-from src.tools.subp import subp
+from src.util.repo import within
+from src.util.subp import subp
 
 
 @pytest.mark.meta

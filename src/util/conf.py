@@ -1,8 +1,8 @@
 import os
 
 import toml
-from src.tools.repo import within
-from src.tools.subp import subp
+from src.util.repo import within
+from src.util.subp import subp
 
 
 def load(*, chaos_go_label=None, chaostool_label=None, whitelist_label=None,

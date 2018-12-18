@@ -13,9 +13,9 @@ import pdb
 import shutil
 
 import pytest
-from src.tools.conf import load
-from src.tools.repo import go_repo, within
-from src.tools.subp import subp
+from src.util.conf import load
+from src.util.repo import go_repo, within
+from src.util.subp import subp
 from pathlib import Path
 
 def pytest_addoption(parser):
