@@ -8,53 +8,41 @@ from glob import glob
 import pdb
 import pytest
 
-from src.repo import within
-from src.subp import subp
+from src.tools.repo import within
+from src.tools.subp import subp
 
 
 @pytest.mark.meta
-def test_chaos_go_repo(chaos_go_repo, request):
+def test_ndau_go_repo(ndau_go_repo, request):
 #    pdb.set_trace()
-    requested_label = request.config.getoption('--chaos-go-label')
+    requested_label = request.config.getoption('--ndau-go-label')
     current_label = subp('git rev-parse --abbrev-ref HEAD')
     if requested_label == current_label:
         requested_hash = subp(
             f'git log {requested_label} -1 --pretty=tformat:"%H"'
         )
-        assert os.path.exists(chaos_go_repo)
-        with within(chaos_go_repo):
+        assert os.path.exists(ndau_go_repo)
+        with within(ndau_go_repo):
             actual_hash = subp('git log -1 --pretty=tformat:"%H"')
             assert requested_hash == actual_hash
 
 
 @pytest.mark.meta
-def test_chaostool_repo(chaostool_repo, request):
-    requested_label = request.config.getoption('--chaostool-label')
+def test_ndautool_repo(ndautool_repo, request):
+    requested_label = request.config.getoption('--ndautool-label')
     current_label = subp('git rev-parse --abbrev-ref HEAD')
     if requested_label == current_label:
         requested_hash = subp(
             f'git log {requested_label} -1 --pretty=tformat:"%H"'
         )
-        assert os.path.exists(chaostool_repo)
-        with within(chaostool_repo):
+        assert os.path.exists(ndautool_repo)
+        with within(ndautool_repo):
             actual_hash = subp('git log -1 --pretty=tformat:"%H"')
             assert requested_hash == actual_hash
 
 
 @pytest.mark.meta
-def test_whitelist_repo(whitelist_repo, request):
-    requested_label = request.config.getoption('--whitelist-label')
-    requested_hash = subp(
-        f'git log {requested_label} -1 --pretty=tformat:"%H"'
-    )
-    assert os.path.exists(whitelist_repo)
-    with within(whitelist_repo):
-        actual_hash = subp('git log -1 --pretty=tformat:"%H"')
-        assert requested_hash == actual_hash
-
-
-@pytest.mark.meta
-def test_chaos_node(run_kub, chaos_node, chaos_node_exists):
+def test_ndau_node(run_kub, ndau_node, ndau_node_exists):
     # see https://tendermint.readthedocs.io/en/master/getting-started.html
     if run_kub:
         env = {
@@ -62,17 +50,17 @@ def test_chaos_node(run_kub, chaos_node, chaos_node_exists):
         }
     else:
         env = {
-            'TMHOME': chaos_node['tmhome'],
-            'NDAUHOME': chaos_node['ndauhome'],
+            'TMHOME': ndau_node['tmhome'],
+            'NDAUHOME': ndau_node['ndauhome'],
             'PATH': os.environ['PATH'],
         }        
     print(f'env: {env}')
 
     try:
         if run_kub:
-            print(f'address: {chaos_node_exists["address"]}')
+            print(f'address: {ndau_node_exists["address"]}')
 
-            curl_res = subp(f'curl -s http://{chaos_node_exists["address"]}:{chaos_node_exists["devnet0_rpc"]}/status')
+            curl_res = subp(f'curl -s http://{ndau_node_exists["address"]}:{ndau_node_exists["devnet0_rpc"]}/status')
         else:
             address = subp(
                 # JSG change port to current default TM port: 26657
@@ -93,37 +81,24 @@ def test_chaos_node(run_kub, chaos_node, chaos_node_exists):
 
 
 @pytest.mark.meta
-def test_chaos_node_and_tool(chaos_node_and_tool):
-    c = chaos_node_and_tool
+def test_ndau_node_and_tool(ndau_node_and_tool):
+    c = ndau_node_and_tool
 #    pdb.set_trace()
-    # ensure that 'chaos conf' has already been run
-    ret = subp(f'{c["tool"]["bin"]} id list', env=c['env'])
-    print(f'chaostool ret = {ret}')
     # ensure that the node is running and the tool is configured
     # to connect to it
-    ret = subp(f'{c["tool"]["bin"]} info', env=c['env'])
-    print(f'chaostool ret = {ret}')
-
-
-@pytest.mark.meta
-def test_whitelist_build(whitelist_build):
-    # ensure the binary exists and can run
-    try:
-        subp(f'{whitelist_build["bin"]} chaos path', stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError as e:
-        print(e.stdout)
-        raise
+    ret = subp(f'{c["tool"]["bin"]} info', env=c['env'], stderr=subprocess.STDOUT)
+    print(f'ndautool ret = {ret}')
 
 
 @pytest.mark.meta
 @pytest.mark.skip(reason="flaky for as-yet undiagnosed reasons")
-def test_chaos_node_two_validator_build(chaos_node_two_validator_build):
+def test_ndau_node_two_validator_build(ndau_node_two_validator_build):
     """Ensure that all expected outputs exist for two validator build."""
     for pk in ('multinode', 'repo', 'scripts'):
-        path = chaos_node_two_validator_build[pk]
+        path = ndau_node_two_validator_build[pk]
         assert os.path.exists(path)
     output_scripts = glob(os.path.join(
-        chaos_node_two_validator_build['scripts'],
+        ndau_node_two_validator_build['scripts'],
         '*.sh'
     ))
     print("scripts generated:")
@@ -134,19 +109,19 @@ def test_chaos_node_two_validator_build(chaos_node_two_validator_build):
 
 @pytest.mark.meta
 @pytest.mark.skip(reason="flaky for as-yet undiagnosed reasons")
-def test_chaos_node_two_validator(chaos_node_two_validator):
-    """Ensure that both validators of the chaos node are up."""
-    gen_nodes = chaos_node_two_validator['gen_nodes']
+def test_ndau_node_two_validator(ndau_node_two_validator):
+    """Ensure that both validators of the ndau node are up."""
+    gen_nodes = ndau_node_two_validator['gen_nodes']
     for address in gen_nodes('2 --rpc-address').splitlines():
         subp(f'curl -s {address}/status')
 
 @pytest.mark.meta
 @pytest.mark.skip(reason="flaky for as-yet undiagnosed reasons")
-def test_two_chaos_nodes_and_tool(two_chaos_nodes_and_tool):
-    """Ensure that chaos tool setup worked with two nodes."""
-    chaos = two_chaos_nodes_and_tool['chaos']
-    chaos_path = chaos('conf-path')
-    print('chaos path:', chaos_path)
-    assert chaos_path.startswith(
-        two_chaos_nodes_and_tool['node']['multinode']
+def test_two_ndau_nodes_and_tool(two_ndau_nodes_and_tool):
+    """Ensure that ndau tool setup worked with two nodes."""
+    ndau = two_ndau_nodes_and_tool['ndau']
+    ndau_path = ndau('conf-path')
+    print('ndau path:', ndau_path)
+    assert ndau_path.startswith(
+        two_ndau_nodes_and_tool['node']['multinode']
     )

@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
-from src.conf import load
-from src.repo import go_repo
-from src.subp import subp
+"""
+Utility for printing the git hashes of the repos and branches defined in the conf.toml file.
+"""
+
+from src.tools.conf import load
+from src.tools.repo import go_repo
+from src.tools.subp import subp
 
 
 def hashes(conf):

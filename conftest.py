@@ -13,9 +13,9 @@ import pdb
 import shutil
 
 import pytest
-from src.conf import load
-from src.repo import go_repo, within
-from src.subp import subp
+from src.tools.conf import load
+from src.tools.repo import go_repo, within
+from src.tools.subp import subp
 from pathlib import Path
 
 def pytest_addoption(parser):
@@ -278,7 +278,7 @@ def chaos_node(keeptemp, run_kub, chaos_node_build):
 
         print("chaos_node fixture: run.sh running")
 
-        print("chaos_node fixture: yielding")
+    print("chaos_node fixture: yielding")
     try:
         yield chaos_node_build
     finally:
@@ -454,7 +454,7 @@ def ndau_node(keeptemp, run_kub, ndau_node_build):
 
         print("ndau_node fixture: run.sh running")
 
-        print("ndau_node fixture: yielding")
+    print("ndau_node fixture: yielding")
     try:
         yield ndau_node_build
     finally:
