@@ -291,7 +291,7 @@ def test_whitelist_tool_can_whitelist(chaos_and_whitelist):
     assert whitelist(f'check {key} -v {value}') == 'true'
 
 
-def test_whitelisted_scps_are_accepted(run_kub, chaos_and_whitelist):
+def test_whitelisted_scps_are_accepted(use_kub, chaos_and_whitelist):
     """`chaostool` can send a whitelisted SCP and it is accepted."""
     chaos = chaos_and_whitelist['chaos']
     whitelist = chaos_and_whitelist['whitelist']
@@ -306,7 +306,7 @@ def test_whitelisted_scps_are_accepted(run_kub, chaos_and_whitelist):
     print(f'wl res = {wl_res}')
     # JSG if run on Kub, just check if the wl command ran successfully
     # SCP will currently fail with remote nodes
-    if run_kub:
+    if use_kub:
         wl_res_word = wl_res.split()[0]
         assert wl_res_word == "Successfully"
         return

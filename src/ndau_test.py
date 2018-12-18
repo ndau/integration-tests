@@ -234,7 +234,7 @@ def test_create_account(ndau, _random_string):
 #     assert whitelist(f'check {key} -v {value}') == 'true'
 
 
-# def test_whitelisted_scps_are_accepted(run_kub, ndau_and_whitelist):
+# def test_whitelisted_scps_are_accepted(use_kub, ndau_and_whitelist):
 #     """`ndautool` can send a whitelisted SCP and it is accepted."""
 #     ndau = ndau_and_whitelist['ndau']
 #     whitelist = ndau_and_whitelist['whitelist']
@@ -249,7 +249,7 @@ def test_create_account(ndau, _random_string):
 #     print(f'wl res = {wl_res}')
 #     # JSG if run on Kub, just check if the wl command ran successfully
 #     # SCP will currently fail with remote nodes
-#     if run_kub:
+#     if use_kub:
 #         wl_res_word = wl_res.split()[0]
 #         assert wl_res_word == "Successfully"
 #         return

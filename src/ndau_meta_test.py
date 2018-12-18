@@ -42,9 +42,9 @@ def test_ndautool_repo(ndautool_repo, request):
 
 
 @pytest.mark.meta
-def test_ndau_node(run_kub, ndau_node, ndau_node_exists):
+def test_ndau_node(use_kub, ndau_node, ndau_node_exists):
     # see https://tendermint.readthedocs.io/en/master/getting-started.html
-    if run_kub:
+    if use_kub:
         env = {
             'PATH': os.environ['PATH']
         }
@@ -57,7 +57,7 @@ def test_ndau_node(run_kub, ndau_node, ndau_node_exists):
     print(f'env: {env}')
 
     try:
-        if run_kub:
+        if use_kub:
             print(f'address: {ndau_node_exists["address"]}')
 
             curl_res = subp(f'curl -s http://{ndau_node_exists["address"]}:{ndau_node_exists["devnet0_rpc"]}/status')

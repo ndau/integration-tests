@@ -18,6 +18,7 @@ from src.util.repo import go_repo, within
 from src.util.subp import subp
 from pathlib import Path
 
+
 def pytest_addoption(parser):
     """See https://docs.pytest.org/en/latest/example/simple.html."""
     parser.addoption("--chaos-go-label", action="store", default="master",
@@ -37,17 +38,20 @@ def pytest_addoption(parser):
 # JSG add option to keep temp files and dirs if debugging failures
     parser.addoption("--keeptemp", action="store_true",
                      default=False, help="keep temporary files for debugging")
-    parser.addoption("--run_kub", action="store_true",
-                     default=False, help="keep temporary files for debugging")
+    parser.addoption("--use", action="store",
+                     default="kub", help="use 'kub'ernetes devnet nodes or 'loc'al nodes")
+
 
 @pytest.fixture(scope='session')
 def keeptemp(request):
     return request.config.getoption("--keeptemp")
 
+
 @pytest.fixture(scope='session')
-def run_kub(request):
-    return request.config.getoption("--run_kub")
-    
+def use_kub(request):
+    return request.config.getoption("--use") == "kub"
+
+
 def pytest_collection_modifyitems(config, items):
     """Pytest func to adjust which tests are run."""
     if not config.getoption("--runslow"):
@@ -97,6 +101,7 @@ def whitelist_repo(request):
     with go_repo(conf['repo'], conf['logical'], conf['label']) as path:
         yield path
 
+
 @pytest.fixture(scope='session')
 def ndau_go_repo(request):
     """Return the path at which ndau-go is available."""
@@ -116,7 +121,7 @@ def ndautool_repo(request):
 
 
 @pytest.fixture(scope='session')
-def chaos_node_build(run_kub, chaos_go_repo, get_ndauhome_dir):
+def chaos_node_build(use_kub, chaos_go_repo, get_ndauhome_dir):
     """
     Build a single chaos node.
 
@@ -137,7 +142,7 @@ def chaos_node_build(run_kub, chaos_go_repo, get_ndauhome_dir):
         print(f'build tmhome: {tmhome}')
         with within(chaos_go_repo):            
             try:
-                if not run_kub:
+                if not use_kub:
                     subp(
                         build_script,
                         env={'NDAUHOME': ndauhome, 'TMHOME': tmhome, 'PATH': os.environ['PATH']},
@@ -201,8 +206,9 @@ def chaos_node_exists(keeptemp):
         'devnet1_rpc': devnet1_rpc
     }
 
+
 @pytest.fixture
-def chaos_node(keeptemp, run_kub, chaos_node_build):
+def chaos_node(keeptemp, use_kub, chaos_node_build):
     """
     Initialize and run a chaos node for this test.
 
@@ -229,7 +235,7 @@ def chaos_node(keeptemp, run_kub, chaos_node_build):
             print(e.returncode)
 
             raise
-    if not run_kub:
+    if not use_kub:
         print("chaos_node fixture: running init.sh")
         print(f'init.sh: {os.path.join("bin", "init.sh")}')
         print(f'cwd: {chaos_node_build["repo"]}')
@@ -288,12 +294,13 @@ def chaos_node(keeptemp, run_kub, chaos_node_build):
             run_cmd(os.path.join('bin', 'reset.sh'))
             print("chaos_node fixture: reset.sh finished")
 
-        if not run_kub:
+        if not use_kub:
             if run_script.poll() is None:
                 run_script.terminate()
 
+
 @pytest.fixture(scope='session')
-def ndau_node_build(run_kub, ndau_go_repo, get_ndauhome_dir):
+def ndau_node_build(use_kub, ndau_go_repo, get_ndauhome_dir):
     """
     Build a single ndau node.
 
@@ -314,7 +321,7 @@ def ndau_node_build(run_kub, ndau_go_repo, get_ndauhome_dir):
         print(f'build tmhome: {tmhome}')
         with within(ndau_go_repo):            
             try:
-                if not run_kub:
+                if not use_kub:
                     subp(
                         build_script,
                         env={'NDAUHOME': ndauhome, 'TMHOME': tmhome, 'PATH': os.environ['PATH']},
@@ -334,6 +341,7 @@ def ndau_node_build(run_kub, ndau_go_repo, get_ndauhome_dir):
         # TemporaryDirectory, which expects to need to clean up after itself.
         # We therefore catch this exception and do nothing about it.
         pass
+
 
 @pytest.fixture
 def ndau_node_exists(keeptemp):
@@ -377,8 +385,9 @@ def ndau_node_exists(keeptemp):
         'devnet1_rpc': devnet1_rpc
     }
 
+
 @pytest.fixture
-def ndau_node(keeptemp, run_kub, ndau_node_build):
+def ndau_node(keeptemp, use_kub, ndau_node_build):
     """
     Initialize and run a ndau node for this test.
 
@@ -405,7 +414,7 @@ def ndau_node(keeptemp, run_kub, ndau_node_build):
             print(e.returncode)
 
             raise
-    if not run_kub:
+    if not use_kub:
         print("ndau_node fixture: running init.sh")
         print(f'init.sh: {os.path.join("bin", "init.sh")}')
         print(f'cwd: {ndau_node_build["repo"]}')
@@ -464,7 +473,7 @@ def ndau_node(keeptemp, run_kub, ndau_node_build):
             run_cmd(os.path.join('bin', 'reset.sh'))
             print("ndau_node fixture: reset.sh finished")
 
-        if not run_kub:
+        if not use_kub:
             if run_script.poll() is None:
                 run_script.terminate()
 
@@ -499,6 +508,7 @@ def chaostool_build(keeptemp, chaostool_repo):
                 'bin': bin_fp.name,
             }
 
+
 @pytest.fixture(scope='session')
 def whitelist_build(keeptemp, whitelist_repo):
     """
@@ -515,6 +525,7 @@ def whitelist_build(keeptemp, whitelist_repo):
                 'repo': whitelist_repo,
                 'bin': bin_fp.name,
             }
+
 
 @pytest.fixture(scope='session')
 def ndautool_build(keeptemp, ndautool_repo):
@@ -533,8 +544,9 @@ def ndautool_build(keeptemp, ndautool_repo):
                 'bin': bin_fp.name,
             }
 
+
 @pytest.fixture
-def chaos_node_and_tool(run_kub, chaos_node, chaostool_build, chaos_node_exists):
+def chaos_node_and_tool(use_kub, chaos_node, chaostool_build, chaos_node_exists):
     """
     Run a chaos node, and configure the chaos tool to connect to it.
 
@@ -547,7 +559,7 @@ def chaos_node_and_tool(run_kub, chaos_node, chaostool_build, chaos_node_exists)
         'PATH': os.environ['PATH'],
     }
 
-    if run_kub:
+    if use_kub:
         address = 'http://' + chaos_node_exists['address'] + ':' + chaos_node_exists['devnet0_rpc']
     else:
         with within(chaos_node['repo']):
@@ -570,8 +582,9 @@ def chaos_node_and_tool(run_kub, chaos_node, chaostool_build, chaos_node_exists)
         'env': env,
     }
 
+
 @pytest.fixture
-def ndau_node_and_tool(run_kub, ndau_node, ndautool_build, ndau_node_exists):
+def ndau_node_and_tool(use_kub, ndau_node, ndautool_build, ndau_node_exists):
     """
     Run a ndau node, and configure the ndau tool to connect to it.
 
@@ -584,7 +597,7 @@ def ndau_node_and_tool(run_kub, ndau_node, ndautool_build, ndau_node_exists):
         'PATH': os.environ['PATH'],
     }
 
-    if run_kub:
+    if use_kub:
         address = 'http://' + ndau_node_exists['address'] + ':' + ndau_node_exists['devnet0_rpc']
     else:
         with within(ndau_node['repo']):

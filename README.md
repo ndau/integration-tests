@@ -16,7 +16,7 @@ These tools are intended for different audiences and will likely be running on s
 1. Install `pipenv`: `pip3 install pipenv`
 1. Install `pytest`: `pip3 install pytest`
 1. Install `toml`: `pip3 install toml`
-1. Set up Kubernetes tools (needed for running `pytest -v --run_kub`)
+1. Set up Kubernetes tools
     1. Install `kubectl`: `brew install kubernetes-cli`
     1. Create the directory `~/.kube`
     1. Get the `deploy_security` tarball from Oneiro's 1password account
@@ -39,8 +39,7 @@ Tests are handled via the `pytest` unit-testing tool. To run the entire test sui
 - `--runslow` if set runs tests which have been marked as slow. None of these tests are particularly speedy due to the heavy fixtures in play, but some are particularly poky.
 - `--skipmeta` if set skips metatests. Metatests are tests which verify that the fixtures in use to fetch and build the various dependencies are all working properly.
 - `--keeptemp` if set keeps temp files and directories around to help debug test failures.  Normally all files and directories created during testing will be removed at the end of the tests.  Temporary files will normally be named in the form of /tmp/XXXXXX_YYYYYYYY, where X's are the tool or component name, and Y's are a randomly generated string.
-
-- `--run_kub` Instead of building chaosnode and running locally, tries to connect to existing Kubernetes instance of chaosnode in devnet and runs tests with local docker built chaostool.
+- `--use={kub|loc}` instructs the integration tests to run against a remotely running Kubernetes deploy on devnet (`--use=kub`) vs locally running nodes (`--use=loc`).  Kubernetes is the default.  Our integration tests never "build and run" anything.  Rather, they run tests against already-running nodes.  See documentation in the [commands](https://github.com/oneiro-ndev/commands) repo for how to set up, build and run local nodes.  See the [automation](https://github.com/oneiro-ndev/automation) repo for information regarding Kubernetes setup and deploy.
 
 ## Testing Strategy
 

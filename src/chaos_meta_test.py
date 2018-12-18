@@ -54,9 +54,9 @@ def test_whitelist_repo(whitelist_repo, request):
 
 
 @pytest.mark.meta
-def test_chaos_node(run_kub, chaos_node, chaos_node_exists):
+def test_chaos_node(use_kub, chaos_node, chaos_node_exists):
     # see https://tendermint.readthedocs.io/en/master/getting-started.html
-    if run_kub:
+    if use_kub:
         env = {
             'PATH': os.environ['PATH']
         }
@@ -69,7 +69,7 @@ def test_chaos_node(run_kub, chaos_node, chaos_node_exists):
     print(f'env: {env}')
 
     try:
-        if run_kub:
+        if use_kub:
             print(f'address: {chaos_node_exists["address"]}')
 
             curl_res = subp(f'curl -s http://{chaos_node_exists["address"]}:{chaos_node_exists["devnet0_rpc"]}/status')
