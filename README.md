@@ -43,8 +43,6 @@ Tests are handled via the `pytest` unit-testing tool. To run the entire test sui
 
 ## Testing Strategy
 
-This repository contains a `Dockerfile` which when built produces a container which contains `chaos-go`, `chaos`, `ndwhitelist`, their associated tools and utilities, and the actual test scripts. Tests are executed when the container is run.
-
 Tests are written in Python using [pytest](https://docs.pytest.org/en/latest/) and [hypothesis](https://hypothesis.readthedocs.io/en/latest/).
 
 ## Tests
@@ -64,7 +62,6 @@ Tests are written in Python using [pytest](https://docs.pytest.org/en/latest/) a
 - [X] `chaostool` can send a whitelisted SCP and it is accepted
 
 ### Two validator nodes
-
 
 - [*] Two validator nodes pass all single validator node tests
 - [X] When node power is equal, and one node has whitelisted a SCP but the other has not, a transaction setting that SCP is not accepted
