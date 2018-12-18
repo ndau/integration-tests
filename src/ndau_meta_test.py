@@ -42,35 +42,12 @@ def test_ndautool_repo(ndautool_repo, request):
 
 
 @pytest.mark.meta
-def test_ndau_node(use_kub, ndau_node, ndau_node_exists):
+def test_ndau_node(ndau_node, ndau_node_exists):
     # see https://tendermint.readthedocs.io/en/master/getting-started.html
-    if use_kub:
-        env = {
-            'PATH': os.environ['PATH']
-        }
-    else:
-        env = {
-            'TMHOME': ndau_node['tmhome'],
-            'NDAUHOME': ndau_node['ndauhome'],
-            'PATH': os.environ['PATH'],
-        }        
-    print(f'env: {env}')
-
     try:
-        if use_kub:
-            print(f'address: {ndau_node_exists["address"]}')
+        print(f'address: {ndau_node_exists["address"]}')
 
-            curl_res = subp(f'curl -s http://{ndau_node_exists["address"]}:{ndau_node_exists["devnet0_rpc"]}/status')
-        else:
-            address = subp(
-                # JSG change port to current default TM port: 26657
-                'docker-compose port tendermint 26657',
-                env=env,
-                stderr=subprocess.STDOUT,
-            )
-            print(f'address: {address}')
-
-            curl_res = subp(f'curl -s {address}/status')        
+        curl_res = subp(f'curl -s http://{ndau_node_exists["address"]}:{ndau_node_exists["nodenet0_rpc"]}/status')
 
     except subprocess.CalledProcessError as e:
         print('--STDOUT--')
