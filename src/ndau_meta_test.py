@@ -18,11 +18,11 @@ def test_ndau_go_repo(ndau_go_repo, request):
     requested_label = request.config.getoption('--ndau-go-label')
     current_label = subp('git rev-parse --abbrev-ref HEAD')
     if requested_label == current_label:
-        requested_hash = subp(
-            f'git log {requested_label} -1 --pretty=tformat:"%H"'
-        )
         assert os.path.exists(ndau_go_repo)
         with within(ndau_go_repo):
+            requested_hash = subp(
+                f'git log {requested_label} -1 --pretty=tformat:"%H"'
+            )
             actual_hash = subp('git log -1 --pretty=tformat:"%H"')
             assert requested_hash == actual_hash
 
@@ -32,11 +32,11 @@ def test_ndautool_repo(ndautool_repo, request):
     requested_label = request.config.getoption('--ndautool-label')
     current_label = subp('git rev-parse --abbrev-ref HEAD')
     if requested_label == current_label:
-        requested_hash = subp(
-            f'git log {requested_label} -1 --pretty=tformat:"%H"'
-        )
         assert os.path.exists(ndautool_repo)
         with within(ndautool_repo):
+            requested_hash = subp(
+                f'git log {requested_label} -1 --pretty=tformat:"%H"'
+            )
             actual_hash = subp('git log -1 --pretty=tformat:"%H"')
             assert requested_hash == actual_hash
 
