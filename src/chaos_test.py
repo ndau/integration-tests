@@ -53,9 +53,19 @@ def chaos_and_whitelist(chaos_node_and_tool, whitelist_build):
     return {'chaos': ch_f, 'whitelist': wl_f}
 
 
-def test_get_status(use_kub, chaos):
+def test_get_chaos_status(use_kub, chaos):
     """`chaostool` can connect to `chaos-go` and get status."""
     info = json.loads(chaos('info'))
+    moniker = info['node_info']['moniker']
+    if use_kub:
+        assert moniker == 'devnet-0'
+    else:
+        assert moniker == subp('hostname')
+
+
+def test_get_ndau_status(use_kub, ndau):
+    """`ndautool` can connect to `ndau node` and get status."""
+    info = json.loads(ndau('info'))
     moniker = info['node_info']['moniker']
     if use_kub:
         assert moniker == 'devnet-0'

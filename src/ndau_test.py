@@ -19,7 +19,7 @@ def _random_string(len=16):
     return ''.join(choices(ascii_lowercase+digits, k=len))
 
 
-def test_get_status(use_kub, ndau):
+def test_get_ndau_status(use_kub, ndau):
     """`ndautool` can connect to `ndau node` and get status."""
     info = json.loads(ndau('info'))
     moniker = info['node_info']['moniker']
