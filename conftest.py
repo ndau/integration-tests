@@ -373,7 +373,7 @@ def chaos_node_and_tool(chaos_node, chaostool_build, chaos_node_exists):
 
 
 @pytest.fixture
-def ndau_node_and_tool(use_kub, ndau_node, ndautool_build, ndau_node_exists):
+def ndau_node_and_tool(ndau_node, ndautool_build, ndau_node_exists):
     """
     Run a ndau node, and configure the ndau tool to connect to it.
 
