@@ -71,7 +71,6 @@ def get_ndauhome_dir(keeptemp):
         shutil.rmtree(ndauhome_dir, True)
 
 
-
 @pytest.fixture(scope='session')
 def chaos_go_repo(request):
     """Return the path at which chaos-go is available."""
@@ -468,7 +467,7 @@ def ndau_node(keeptemp, run_kub, ndau_node_build):
         if not keeptemp and not run_kub:
             print("ndau_node fixture: running reset.sh")
             # JSG only run reset.sh if keeptemp is false
-            pdb.set_trace()
+#            pdb.set_trace()
             run_cmd(os.path.join('bin', 'reset.sh'))
             print("ndau_node fixture: reset.sh finished")
 
@@ -606,11 +605,11 @@ def ndau_node_and_tool(run_kub, ndau_node, ndautool_build, ndau_node_exists):
 
         if '://' not in address:
             address = 'http://' + address
-    pdb.set_trace()
+#    pdb.set_trace()
     conf_path = subp(
         f'{ndautool_build["bin"]} conf-path',
         env=env)
-    
+# JSG only create new config if it doesn't already exist    
     if not os.path.isfile(conf_path):     
         subp(
             f'{ndautool_build["bin"]} conf {address}',
@@ -794,6 +793,7 @@ def two_chaos_nodes_and_tool(chaos_node_two_validator, chaostool_build):
         'env': env,
         'chaos': chaos,
     }
+
 
 @pytest.fixture
 def chaos(chaos_node_and_tool):
