@@ -83,7 +83,6 @@ def chaos_go_repo(request):
 @pytest.fixture(scope='session')
 def chaostool_repo(request):
     """Return the path at which chaostool is available."""
-#    pdb.set_trace()
     label = request.config.getoption('--chaostool-label')
     conf = load(chaostool_label=label)['chaostool']
     with go_repo(conf['repo'], conf['logical'], conf['label']) as path:
@@ -110,7 +109,6 @@ def ndau_go_repo(request):
 @pytest.fixture(scope='session')
 def ndautool_repo(request):
     """Return the path at which ndautool is available."""
-#    pdb.set_trace()
     label = request.config.getoption('--ndautool-label')
     conf = load(ndautool_label=label)['ndautool']
     with go_repo(conf['repo'], conf['logical'], conf['label']) as path:
@@ -172,7 +170,6 @@ def chaos_node_exists(keeptemp):
     def run_cmd(cmd, **kwargs):
         print(f'cmd: {cmd}')
         try:
-#            pdb.set_trace()
             foo = subp(
                 cmd,
                 env={'KUBECONFIG': os.environ['KUBECONFIG'], 'PATH': os.environ['PATH']},
@@ -232,7 +229,6 @@ def chaos_node(keeptemp, run_kub, chaos_node_build):
             print(e.returncode)
 
             raise
-#    pdb.set_trace()
     if not run_kub:
         print("chaos_node fixture: running init.sh")
         print(f'init.sh: {os.path.join("bin", "init.sh")}')
@@ -350,7 +346,6 @@ def ndau_node_exists(keeptemp):
     def run_cmd(cmd, **kwargs):
         print(f'cmd: {cmd}')
         try:
-#            pdb.set_trace()
             foo = subp(
                 cmd,
                 env={'KUBECONFIG': os.environ['KUBECONFIG'], 'PATH': os.environ['PATH']},
@@ -410,7 +405,6 @@ def ndau_node(keeptemp, run_kub, ndau_node_build):
             print(e.returncode)
 
             raise
-#    pdb.set_trace()
     if not run_kub:
         print("ndau_node fixture: running init.sh")
         print(f'init.sh: {os.path.join("bin", "init.sh")}')
@@ -467,7 +461,6 @@ def ndau_node(keeptemp, run_kub, ndau_node_build):
         if not keeptemp and not run_kub:
             print("ndau_node fixture: running reset.sh")
             # JSG only run reset.sh if keeptemp is false
-#            pdb.set_trace()
             run_cmd(os.path.join('bin', 'reset.sh'))
             print("ndau_node fixture: reset.sh finished")
 
@@ -571,7 +564,6 @@ def chaos_node_and_tool(run_kub, chaos_node, chaostool_build, chaos_node_exists)
         f'{chaostool_build["bin"]} conf {address}',
         env=env,
     )
-#    pdb.set_trace()
     return {
         'node': chaos_node,
         'tool': chaostool_build,
@@ -605,7 +597,6 @@ def ndau_node_and_tool(run_kub, ndau_node, ndautool_build, ndau_node_exists):
 
         if '://' not in address:
             address = 'http://' + address
-#    pdb.set_trace()
     conf_path = subp(
         f'{ndautool_build["bin"]} conf-path',
         env=env)
@@ -615,7 +606,6 @@ def ndau_node_and_tool(run_kub, ndau_node, ndautool_build, ndau_node_exists):
             f'{ndautool_build["bin"]} conf {address}',
             env=env,
         )
-#    pdb.set_trace()
     return {
         'node': ndau_node,
         'tool': ndautool_build,
@@ -834,6 +824,5 @@ def ndau(ndau_node_and_tool):
         except subprocess.CalledProcessError as e:
             print(e.stdout)
             raise
-#    pdb.set_trace()
     return rf
 
