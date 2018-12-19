@@ -54,7 +54,7 @@ def test_whitelist_repo(whitelist_repo, request):
 
 
 @pytest.mark.meta
-def test_chaos_node(chaos_node, chaos_node_exists):
+def test_chaos_node(chaos_node_exists):
     # see https://tendermint.readthedocs.io/en/master/getting-started.html
     try:
         print(f'address: {chaos_node_exists["address"]}')
