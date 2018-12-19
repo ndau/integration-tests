@@ -360,16 +360,11 @@ def chaos_node_and_tool(chaos_node, chaostool_build, chaos_node_exists):
         'PATH': os.environ['PATH'],
     }
 
-    conf_path = subp(
-        f'{chaostool_build["bin"]} conf-path',
+    address = 'http://' + chaos_node_exists['address'] + ':' + chaos_node_exists['nodenet0_rpc']
+    subp(
+        f'{chaostool_build["bin"]} conf {address}',
         env=env,
     )
-    if not os.path.isfile(conf_path):     
-        address = 'http://' + chaos_node_exists['address'] + ':' + chaos_node_exists['nodenet0_rpc']
-        subp(
-            f'{chaostool_build["bin"]} conf {address}',
-            env=env,
-        )
     return {
         'node': chaos_node,
         'tool': chaostool_build,
@@ -391,16 +386,11 @@ def ndau_node_and_tool(ndau_node, ndautool_build, ndau_node_exists):
         'PATH': os.environ['PATH'],
     }
 
-    conf_path = subp(
-        f'{ndautool_build["bin"]} conf-path',
+    address = 'http://' + ndau_node_exists['address'] + ':' + ndau_node_exists['nodenet0_rpc']
+    subp(
+        f'{ndautool_build["bin"]} conf {address}',
         env=env,
     )
-    if not os.path.isfile(conf_path):     
-        address = 'http://' + ndau_node_exists['address'] + ':' + ndau_node_exists['nodenet0_rpc']
-        subp(
-            f'{ndautool_build["bin"]} conf {address}',
-            env=env,
-        )
     return {
         'node': ndau_node,
         'tool': ndautool_build,
