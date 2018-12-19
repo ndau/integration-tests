@@ -19,26 +19,6 @@ def _random_string(len=16):
     return ''.join(choices(ascii_lowercase+digits, k=len))
 
 
-@pytest.fixture
-def ndau(ndau_node_and_tool):
-    """
-    Fixture providing a ndau function.
-
-    This function calls the ndau command in a configured environment.
-    """
-    def rf(cmd, **kwargs):
-        try:
-            return subp(
-                f'{ndau_node_and_tool["tool"]["bin"]} {cmd}',
-                env=ndau_node_and_tool["env"],
-                stderr=subprocess.STDOUT,
-                **kwargs,
-            )
-        except subprocess.CalledProcessError as e:
-            print(e.stdout)
-            raise
-    return rf
-
 def test_get_status(ndau):
     """`ndautool` can connect to `ndau node` and get status."""
     info = json.loads(ndau('info'))

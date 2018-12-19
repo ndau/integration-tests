@@ -4,11 +4,13 @@ Define pytest fixtures.
 These fixtures configure and run the chaos chain tools.
 """
 import os
+import os.path
 import subprocess
 import time
 import tempfile
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 import pdb
+import shutil
 
 import pytest
 from src.conf import load
@@ -62,6 +64,14 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(scope='session')
+def get_ndauhome_dir(keeptemp):
+    ndauhome_dir = tempfile.mkdtemp(prefix='ndauhome-', dir='/tmp')
+    yield ndauhome_dir
+    if not keeptemp:
+        shutil.rmtree(ndauhome_dir, True)
+
+
+@pytest.fixture(scope='session')
 def chaos_go_repo(request):
     """Return the path at which chaos-go is available."""
     label = request.config.getoption('--chaos-go-label')
@@ -73,7 +83,6 @@ def chaos_go_repo(request):
 @pytest.fixture(scope='session')
 def chaostool_repo(request):
     """Return the path at which chaostool is available."""
-#    pdb.set_trace()
     label = request.config.getoption('--chaostool-label')
     conf = load(chaostool_label=label)['chaostool']
     with go_repo(conf['repo'], conf['logical'], conf['label']) as path:
@@ -100,7 +109,6 @@ def ndau_go_repo(request):
 @pytest.fixture(scope='session')
 def ndautool_repo(request):
     """Return the path at which ndautool is available."""
-#    pdb.set_trace()
     label = request.config.getoption('--ndautool-label')
     conf = load(ndautool_label=label)['ndautool']
     with go_repo(conf['repo'], conf['logical'], conf['label']) as path:
@@ -108,7 +116,7 @@ def ndautool_repo(request):
 
 
 @pytest.fixture(scope='session')
-def chaos_node_build(run_kub, chaos_go_repo):
+def chaos_node_build(run_kub, chaos_go_repo, get_ndauhome_dir):
     """
     Build a single chaos node.
 
@@ -123,7 +131,7 @@ def chaos_node_build(run_kub, chaos_go_repo):
         # JSG Dont use TemporaryDirectroy as it will always get deleted, mkdtemp will create temp directory but not delete, this will get
         # cleaned up in reset.sh if --keeptemp option is not set
         # with TemporaryDirectory(prefix='ndauhome-', dir='/tmp') as ndauhome, TemporaryDirectory(prefix='tmhome-', dir='/tmp') as tmhome, within(chaos_go_repo):  # noqa: E501
-        ndauhome = tempfile.mkdtemp(prefix='ndauhome-', dir='/tmp')
+        ndauhome = get_ndauhome_dir
         tmhome = tempfile.mkdtemp(prefix='tmhome-', dir='/tmp')
         print(f'build ndauhome: {ndauhome}')
         print(f'build tmhome: {tmhome}')
@@ -162,7 +170,6 @@ def chaos_node_exists(keeptemp):
     def run_cmd(cmd, **kwargs):
         print(f'cmd: {cmd}')
         try:
-#            pdb.set_trace()
             foo = subp(
                 cmd,
                 env={'KUBECONFIG': os.environ['KUBECONFIG'], 'PATH': os.environ['PATH']},
@@ -222,7 +229,6 @@ def chaos_node(keeptemp, run_kub, chaos_node_build):
             print(e.returncode)
 
             raise
-#    pdb.set_trace()
     if not run_kub:
         print("chaos_node fixture: running init.sh")
         print(f'init.sh: {os.path.join("bin", "init.sh")}')
@@ -276,7 +282,7 @@ def chaos_node(keeptemp, run_kub, chaos_node_build):
     try:
         yield chaos_node_build
     finally:
-        if not keeptemp:
+        if not keeptemp and not run_kub:
             print("chaos_node fixture: running reset.sh")
             # JSG only run reset.sh if keeptemp is false
             run_cmd(os.path.join('bin', 'reset.sh'))
@@ -287,7 +293,7 @@ def chaos_node(keeptemp, run_kub, chaos_node_build):
                 run_script.terminate()
 
 @pytest.fixture(scope='session')
-def ndau_node_build(run_kub, ndau_go_repo):
+def ndau_node_build(run_kub, ndau_go_repo, get_ndauhome_dir):
     """
     Build a single ndau node.
 
@@ -302,7 +308,7 @@ def ndau_node_build(run_kub, ndau_go_repo):
         # JSG Dont use TemporaryDirectroy as it will always get deleted, mkdtemp will create temp directory but not delete, this will get
         # cleaned up in reset.sh if --keeptemp option is not set
         # with TemporaryDirectory(prefix='ndauhome-', dir='/tmp') as ndauhome, TemporaryDirectory(prefix='tmhome-', dir='/tmp') as tmhome, within(ndau_go_repo):  # noqa: E501
-        ndauhome = tempfile.mkdtemp(prefix='ndauhome-', dir='/tmp')
+        ndauhome = get_ndauhome_dir
         tmhome = tempfile.mkdtemp(prefix='tmhome-', dir='/tmp')
         print(f'build ndauhome: {ndauhome}')
         print(f'build tmhome: {tmhome}')
@@ -340,7 +346,6 @@ def ndau_node_exists(keeptemp):
     def run_cmd(cmd, **kwargs):
         print(f'cmd: {cmd}')
         try:
-#            pdb.set_trace()
             foo = subp(
                 cmd,
                 env={'KUBECONFIG': os.environ['KUBECONFIG'], 'PATH': os.environ['PATH']},
@@ -400,7 +405,6 @@ def ndau_node(keeptemp, run_kub, ndau_node_build):
             print(e.returncode)
 
             raise
-#    pdb.set_trace()
     if not run_kub:
         print("ndau_node fixture: running init.sh")
         print(f'init.sh: {os.path.join("bin", "init.sh")}')
@@ -454,7 +458,7 @@ def ndau_node(keeptemp, run_kub, ndau_node_build):
     try:
         yield ndau_node_build
     finally:
-        if not keeptemp:
+        if not keeptemp and not run_kub:
             print("ndau_node fixture: running reset.sh")
             # JSG only run reset.sh if keeptemp is false
             run_cmd(os.path.join('bin', 'reset.sh'))
@@ -560,7 +564,6 @@ def chaos_node_and_tool(run_kub, chaos_node, chaostool_build, chaos_node_exists)
         f'{chaostool_build["bin"]} conf {address}',
         env=env,
     )
-#    pdb.set_trace()
     return {
         'node': chaos_node,
         'tool': chaostool_build,
@@ -594,11 +597,15 @@ def ndau_node_and_tool(run_kub, ndau_node, ndautool_build, ndau_node_exists):
 
         if '://' not in address:
             address = 'http://' + address
-    subp(
-        f'{ndautool_build["bin"]} conf {address}',
-        env=env,
-    )
-#    pdb.set_trace()
+    conf_path = subp(
+        f'{ndautool_build["bin"]} conf-path',
+        env=env)
+# JSG only create new config if it doesn't already exist    
+    if not os.path.isfile(conf_path):     
+        subp(
+            f'{ndautool_build["bin"]} conf {address}',
+            env=env,
+        )
     return {
         'node': ndau_node,
         'tool': ndautool_build,
@@ -776,3 +783,46 @@ def two_chaos_nodes_and_tool(chaos_node_two_validator, chaostool_build):
         'env': env,
         'chaos': chaos,
     }
+
+
+@pytest.fixture
+def chaos(chaos_node_and_tool):
+    """
+    Fixture providing a chaos function.
+
+    This function calls the chaos command in a configured environment.
+    """
+    def rf(cmd, **kwargs):
+        try:
+            return subp(
+                f'{chaos_node_and_tool["tool"]["bin"]} {cmd}',
+                env=chaos_node_and_tool["env"],
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+        except subprocess.CalledProcessError as e:
+            print(e.stdout)
+            raise
+    return rf
+
+
+@pytest.fixture
+def ndau(ndau_node_and_tool):
+    """
+    Fixture providing a ndau function.
+
+    This function calls the ndau command in a configured environment.
+    """
+    def rf(cmd, **kwargs):
+        try:
+            return subp(
+                f'{ndau_node_and_tool["tool"]["bin"]} {cmd}',
+                env=ndau_node_and_tool["env"],
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+        except subprocess.CalledProcessError as e:
+            print(e.stdout)
+            raise
+    return rf
+
