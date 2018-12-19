@@ -201,7 +201,7 @@ def chaos_node(chaos_node_build):
 
 
 @pytest.fixture(scope='session')
-def ndau_node_build(ndau_go_repo):
+def ndau_node_build(ndau_go_repo, get_ndauhome_dir):
     """
     Build a single ndau node.
 
@@ -373,7 +373,7 @@ def chaos_node_and_tool(chaos_node, chaostool_build, chaos_node_exists):
 
 
 @pytest.fixture
-def ndau_node_and_tool(ndau_node, ndautool_build, ndau_node_exists):
+def ndau_node_and_tool(use_kub, ndau_node, ndautool_build, ndau_node_exists):
     """
     Run a ndau node, and configure the ndau tool to connect to it.
 
@@ -387,15 +387,10 @@ def ndau_node_and_tool(ndau_node, ndautool_build, ndau_node_exists):
     }
 
     address = 'http://' + ndau_node_exists['address'] + ':' + ndau_node_exists['nodenet0_rpc']
-    conf_path = subp(
-        f'{ndautool_build["bin"]} conf-path',
-        env=env)
-    # JSG only create new config if it doesn't already exist    
-    if not os.path.isfile(conf_path):     
-        subp(
-            f'{ndautool_build["bin"]} conf {address}',
-            env=env,
-        )
+    subp(
+        f'{ndautool_build["bin"]} conf {address}',
+        env=env,
+    )
     return {
         'node': ndau_node,
         'tool': ndautool_build,
@@ -616,3 +611,27 @@ def ndau(ndau_node_and_tool):
             raise
     return rf
 
+
+@pytest.fixture
+def set_rfe_address(ndau):
+    conf_path = ndau('conf-path')
+
+    # If the rfe entry is there already, we're done.
+    f = open(conf_path, 'r')
+    conf_lines = f.readlines()
+    f.close()
+    if any(src.util.constants.RFE_ADDRESS in line for line in conf_lines):
+        return
+
+    # write RFE address and keys into ndautool.toml file
+    f = open(conf_path, 'a')
+    f.write('[rfe]\n')
+    f.write(f'address = "{src.util.constants.RFE_ADDRESS}"\n')
+    f.write(f'keys = ["{src.util.constants.RFE_KEY}"]\n')
+    f.close()
+
+    # make sure RFE address exists in ndautool.toml file
+    f = open(conf_path, 'r')
+    conf_lines = f.readlines()
+    f.close()
+    assert any(src.util.constants.RFE_ADDRESS in line for line in conf_lines)

@@ -53,31 +53,18 @@ def chaos_and_whitelist(chaos_node_and_tool, whitelist_build):
     return {'chaos': ch_f, 'whitelist': wl_f}
 
 
-def test_get_status(chaos):
+def test_get_status(use_kub, chaos):
     """`chaostool` can connect to `chaos-go` and get status."""
-    chaos('info')
+    info = json.loads(chaos('info'))
+    moniker = info['node_info']['moniker']
+    if use_kub:
+        assert moniker == 'devnet-0'
+    else:
+        assert moniker == subp('hostname')
 
-def test_get_status(ndau):
-    """`ndautool` can connect to `ndau node` and get status."""
-#    pdb.set_trace()
-    info = json.loads(ndau('info'))
-    assert info['node_info']['moniker'] == 'devnet-0'
 
-def test_create_account(ndau, _random_string):
+def test_create_account(ndau, set_rfe_address, _random_string):
     """Create account, RFE to it, and check attributes"""
-#    pdb.set_trace()
-    conf_path = ndau('conf-path')
-    f = open(conf_path, "a")
-    # write RFE address and keys into ndautool.toml file
-    f.write("[rfe]\n")
-    f.write("address = \"ndmfgnz9qby6nyi35aadjt9nasjqxqyd4vrswucwfmceqs3y\"\n")
-    f.write("keys = [\"npvtayjadtcbid6g7nm4xey8ff2vd5vs3fxaev6gdhhjsmv8zvp997rm69miahnxms7fi5k6rkkrecp7br3rwdd8frxdiexjvcdcf9itqaz578mqu6fk82cgce3s\"]")
-    f.close()
-    f = open(conf_path, "r")
-    conf_lines = f.readlines()
-    f.close()
-    # make sure RFE address exists in ndautool.toml file
-    assert any("ndmfgnz9qby6nyi35aadjt9nasjqxqyd4vrswucwfmceqs3y" in line for line in conf_lines)
     known_ids = ndau('account list').splitlines()
     # make sure account does not already exist
     assert not any(_random_string in id_line for id_line in known_ids)
