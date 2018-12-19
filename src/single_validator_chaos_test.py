@@ -8,6 +8,7 @@ from time import sleep
 import pytest
 import toml
 import pdb
+import json
 
 from src.subp import subp
 
@@ -15,27 +16,6 @@ from src.subp import subp
 @pytest.fixture
 def _random_string(len=16):
     return ''.join(choices(ascii_lowercase+digits, k=len))
-
-
-@pytest.fixture
-def chaos(chaos_node_and_tool):
-    """
-    Fixture providing a chaos function.
-
-    This function calls the chaos command in a configured environment.
-    """
-    def rf(cmd, **kwargs):
-        try:
-            return subp(
-                f'{chaos_node_and_tool["tool"]["bin"]} {cmd}',
-                env=chaos_node_and_tool["env"],
-                stderr=subprocess.STDOUT,
-                **kwargs,
-            )
-        except subprocess.CalledProcessError as e:
-            print(e.stdout)
-            raise
-    return rf
 
 
 @pytest.fixture
@@ -77,6 +57,52 @@ def test_get_status(chaos):
     """`chaostool` can connect to `chaos-go` and get status."""
     chaos('info')
 
+def test_get_status(ndau):
+    """`ndautool` can connect to `ndau node` and get status."""
+#    pdb.set_trace()
+    info = json.loads(ndau('info'))
+    assert info['node_info']['moniker'] == 'devnet-0'
+
+def test_create_account(ndau, _random_string):
+    """Create account, RFE to it, and check attributes"""
+#    pdb.set_trace()
+    conf_path = ndau('conf-path')
+    f = open(conf_path, "a")
+    # write RFE address and keys into ndautool.toml file
+    f.write("[rfe]\n")
+    f.write("address = \"ndmfgnz9qby6nyi35aadjt9nasjqxqyd4vrswucwfmceqs3y\"\n")
+    f.write("keys = [\"npvtayjadtcbid6g7nm4xey8ff2vd5vs3fxaev6gdhhjsmv8zvp997rm69miahnxms7fi5k6rkkrecp7br3rwdd8frxdiexjvcdcf9itqaz578mqu6fk82cgce3s\"]")
+    f.close()
+    f = open(conf_path, "r")
+    conf_lines = f.readlines()
+    f.close()
+    # make sure RFE address exists in ndautool.toml file
+    assert any("ndmfgnz9qby6nyi35aadjt9nasjqxqyd4vrswucwfmceqs3y" in line for line in conf_lines)
+    known_ids = ndau('account list').splitlines()
+    # make sure account does not already exist
+    assert not any(_random_string in id_line for id_line in known_ids)
+    # create new randomly named account
+    ndau(f'account new {_random_string}')
+    new_ids = ndau('account list').splitlines()
+    # check that account now exists
+    assert any(_random_string in id_line for id_line in new_ids)
+    id_line = [s for s in new_ids if _random_string in s]
+    # check that account is not claimed (has 0 tx keys)
+    assert '(0 tr keys)' in id_line[0]
+    account_data = json.loads(ndau(f'account query {_random_string}'))
+    assert account_data['validationKeys'] == None
+    # RFE to account 10 ndau
+    ndau(f'rfe 10 {_random_string}')
+    account_data = json.loads(ndau(f'account query {_random_string}'))
+    # check that account balance is 10 ndau
+    assert account_data['balance'] == 1000000000
+    # claim account, and check that account now has validation keys
+    ndau(f'account claim {_random_string}')
+    account_data = json.loads(ndau(f'account query {_random_string}'))
+    assert account_data['validationKeys'] != None
+    # check that 1 napu tx fee was deducted from account
+    assert account_data['balance'] == 999999999
+
 
 def test_create_id(chaos, _random_string):
     """First line is always a header."""
@@ -87,9 +113,19 @@ def test_create_id(chaos, _random_string):
     assert any(_random_string in id_line for id_line in new_ids)
 
 
-def test_set_get(chaos, _random_string):
+def test_set_get(chaos, ndau, _random_string):
     """`chaostool` can set a value and get it back later."""
+#    pdb.set_trace()
+    conf_path = ndau('conf-path')
+    f = open(conf_path, "r")
+    conf_lines = f.readlines()
+    f.close()
+    print(conf_lines)
+    ndau(f'account new {_random_string}')
+    ndau(f'rfe 10 {_random_string}')
+    ndau(f'account claim {_random_string}')
     chaos(f'id new {_random_string}')
+    chaos(f'id copy-keys-from {_random_string}')
     chaos(f'set {_random_string} -k key -v value')
     v = chaos(f'get {_random_string} -k key -s')
     assert v == 'value'
