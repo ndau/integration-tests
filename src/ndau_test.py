@@ -29,7 +29,7 @@ def test_get_ndau_status(use_kub, ndau):
         assert moniker == subp('hostname')
 
 
-def test_create_account(ndau, set_rfe_address, _random_string):
+def test_create_account_pre_genesis(ndau, set_rfe_address, _random_string):
     """Create account, RFE to it, and check attributes"""
     known_ids = ndau('account list').splitlines()
     # make sure account does not already exist
@@ -53,5 +53,5 @@ def test_create_account(ndau, set_rfe_address, _random_string):
     ndau(f'account claim {_random_string}')
     account_data = json.loads(ndau(f'account query {_random_string}'))
     assert account_data['validationKeys'] != None
-    # check that 1 napu tx fee was deducted from account
-    assert account_data['balance'] == 999999999
+    # check that 0 napu tx fee was deducted from account, there are no tx fees pre-genesis
+    assert account_data['balance'] == 1000000000

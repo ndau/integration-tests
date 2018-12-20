@@ -69,10 +69,16 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(scope='session')
-def get_ndauhome_dir(keeptemp):
-    ndauhome_dir = tempfile.mkdtemp(prefix='ndauhome-', dir='/tmp')
+def get_ndauhome_dir(use_kub, keeptemp):
+    if use_kub:
+        ndauhome_dir = tempfile.mkdtemp(prefix='ndauhome-', dir='/tmp')
+    else:
+        # Use the local ndau home directory that's already there, set up by the localnet.
+        ndauhome_dir = os.path.expanduser('~/.ndau')
+        # Make sure it's really there.  If it isn't, the user hasn't set up a local server.
+        assert os.path.isdir(ndauhome_dir)
     yield ndauhome_dir
-    if not keeptemp:
+    if use_kub and not keeptemp:
         shutil.rmtree(ndauhome_dir, True)
 
 
@@ -613,7 +619,12 @@ def ndau(ndau_node_and_tool):
 
 
 @pytest.fixture
-def set_rfe_address(ndau):
+def set_rfe_address(use_kub, ndau):
+    # When running on localnet, the rfe address is already present in the config.
+    # We don't know what its address is, but our tests don't care.
+    if not use_kub:
+        return
+
     conf_path = ndau('conf-path')
 
     # If the rfe entry is there already, we're done.
