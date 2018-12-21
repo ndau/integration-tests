@@ -40,6 +40,8 @@ def pytest_addoption(parser):
                      default=False, help="keep temporary files for debugging failures")
     parser.addoption("--use", action="store",
                      default="kub", help="use 'kub'ernetes devnet nodes or 'loc'al nodes")
+    parser.addoption("--nodenet", action="store",
+                     default="devnet", help="which node net to hit when using kub")
 
 
 @pytest.fixture(scope='session')
@@ -50,6 +52,11 @@ def keeptemp(request):
 @pytest.fixture(scope='session')
 def use_kub(request):
     return request.config.getoption("--use") == "kub"
+
+
+@pytest.fixture(scope='session')
+def node_net(request):
+    return request.config.getoption("--nodenet")
 
 
 def pytest_collection_modifyitems(config, items):
@@ -193,7 +200,7 @@ def chaos_node_build(chaos_go_repo, get_ndauhome_dir, get_chaos_tmhome_dir):
 
 
 @pytest.fixture
-def chaos_node_exists(use_kub):
+def chaos_node_exists(use_kub, node_net):
     """
     Check if we can communicate with chaos node.
 
@@ -221,8 +228,8 @@ def chaos_node_exists(use_kub):
     print("chaos node exists")
     if use_kub:
         address = run_cmd('kubectl get nodes -o jsonpath=\'{.items[*].status.addresses[?(@.type=="ExternalIP")].address}\' | tr " " "\n" | head -n 1 | tr -d "[:space:]"')
-        nodenet0_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + src.util.constants.NODENET + '-0-nodegroup-chaos-tendermint-service')
-        nodenet1_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + src.util.constants.NODENET + '-1-nodegroup-chaos-tendermint-service')
+        nodenet0_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + node_net + '-0-nodegroup-chaos-tendermint-service')
+        nodenet1_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + node_net + '-1-nodegroup-chaos-tendermint-service')
     else:
         address = 'localhost'
         nodenet0_rpc = str(src.util.constants.LOCALNET0_CHAOS_RPC)
@@ -272,7 +279,7 @@ def ndau_node_build(ndau_go_repo, get_ndauhome_dir, get_ndau_tmhome_dir):
 
 
 @pytest.fixture
-def ndau_node_exists(use_kub):
+def ndau_node_exists(use_kub, node_net):
     """
     Check if we can communicate with ndau node.
 
@@ -300,8 +307,8 @@ def ndau_node_exists(use_kub):
     print("ndau node exists")
     if use_kub:
         address = run_cmd('kubectl get nodes -o jsonpath=\'{.items[*].status.addresses[?(@.type=="ExternalIP")].address}\' | tr " " "\n" | head -n 1 | tr -d "[:space:]"')
-        nodenet0_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + src.util.constants.NODENET + '-0-nodegroup-ndau-tendermint-service')
-        nodenet1_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + src.util.constants.NODENET + '-1-nodegroup-ndau-tendermint-service')
+        nodenet0_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + node_net + '-0-nodegroup-ndau-tendermint-service')
+        nodenet1_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + node_net + '-1-nodegroup-ndau-tendermint-service')
     else:
         address = 'localhost'
         nodenet0_rpc = str(src.util.constants.LOCALNET0_NDAU_RPC)

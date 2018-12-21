@@ -8,7 +8,6 @@ import pdb
 import json
 
 from src.util.subp import subp
-import src.util.constants
 import src.util.helpers
 
 
@@ -47,12 +46,12 @@ def chaos_and_whitelist(chaos_node_and_tool, whitelist_build):
     return {'chaos': ch_f, 'whitelist': wl_f}
 
 
-def test_get_chaos_status(use_kub, chaos):
+def test_get_chaos_status(use_kub, node_net, chaos):
     """`chaostool` can connect to `chaos-go` and get status."""
     info = json.loads(chaos('info'))
     moniker = info['node_info']['moniker']
     if use_kub:
-        assert moniker == f'{src.util.constants.NODENET}-0'
+        assert moniker == f'{node_net}-0'
     else:
         assert moniker == subp('hostname')
 

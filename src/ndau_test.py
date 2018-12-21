@@ -5,16 +5,15 @@ import pytest
 import pdb
 
 from src.util.subp import subp
-import src.util.constants
 import src.util.helpers
 
 
-def test_get_ndau_status(use_kub, ndau):
+def test_get_ndau_status(use_kub, node_net, ndau):
     """`ndautool` can connect to `ndau node` and get status."""
     info = json.loads(ndau('info'))
     moniker = info['node_info']['moniker']
     if use_kub:
-        assert moniker == f'{src.util.constants.NODENET}-0'
+        assert moniker == f'{node_net}-0'
     else:
         assert moniker == subp('hostname')
 
