@@ -36,9 +36,8 @@ def pytest_addoption(parser):
                      default=False, help="run slow tests")
     parser.addoption("--skipmeta", action="store_true",
                      default=False, help="skip meta tests")
-# JSG add option to keep temp files and dirs if debugging failures
     parser.addoption("--keeptemp", action="store_true",
-                     default=False, help="keep temporary files for debugging")
+                     default=False, help="keep temporary files for debugging failures")
     parser.addoption("--use", action="store",
                      default="kub", help="use 'kub'ernetes devnet nodes or 'loc'al nodes")
 
@@ -66,6 +65,21 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "meta" in item.keywords:
                 item.add_marker(skip_meta)
+
+
+@pytest.fixture(autouse=True, scope='session')
+def setup_teardown(chaos_go_repo, ndau_go_repo):
+    # Setup...
+
+    yield
+
+    # Teardown...
+
+    # Wipe temp .kube directories after all tests complete.
+    with within(chaos_go_repo):
+        run_localenv('rm -rf .kube')
+    with within(ndau_go_repo):
+        run_localenv('rm -rf .kube')
 
 
 @pytest.fixture(scope='session')
