@@ -83,6 +83,34 @@ def get_ndauhome_dir(use_kub, keeptemp):
 
 
 @pytest.fixture(scope='session')
+def get_chaos_tmhome_dir(use_kub, keeptemp):
+    if use_kub:
+        tmhome_dir = tempfile.mkdtemp(prefix='tmhome-', dir='/tmp')
+    else:
+        # Use the local tm home directory that's already there, set up by the localnet.
+        tmhome_dir = os.path.expanduser('~/.tendermint-chaos')
+        # Make sure it's really there.  If it isn't, the user hasn't set up a local server.
+        assert os.path.isdir(tmhome_dir)
+    yield tmhome_dir
+    if use_kub and not keeptemp:
+        shutil.rmtree(tmhome_dir, True)
+
+
+@pytest.fixture(scope='session')
+def get_ndau_tmhome_dir(use_kub, keeptemp):
+    if use_kub:
+        tmhome_dir = tempfile.mkdtemp(prefix='tmhome-', dir='/tmp')
+    else:
+        # Use the local tm home directory that's already there, set up by the localnet.
+        tmhome_dir = os.path.expanduser('~/.tendermint-ndau')
+        # Make sure it's really there.  If it isn't, the user hasn't set up a local server.
+        assert os.path.isdir(tmhome_dir)
+    yield tmhome_dir
+    if use_kub and not keeptemp:
+        shutil.rmtree(tmhome_dir, True)
+
+
+@pytest.fixture(scope='session')
 def chaos_go_repo(request):
     """Return the path at which chaos-go is available."""
     label = request.config.getoption('--chaos-go-label')
@@ -128,7 +156,7 @@ def ndautool_repo(request):
 
 
 @pytest.fixture(scope='session')
-def chaos_node_build(chaos_go_repo, get_ndauhome_dir):
+def chaos_node_build(chaos_go_repo, get_ndauhome_dir, get_chaos_tmhome_dir):
     """
     Build a single chaos node.
 
@@ -139,7 +167,7 @@ def chaos_node_build(chaos_go_repo, get_ndauhome_dir):
     That's what this fixture does.
     """
     ndauhome = get_ndauhome_dir
-    tmhome = tempfile.mkdtemp(prefix='tmhome-', dir='/tmp')
+    tmhome = get_chaos_tmhome_dir
     print(f'build ndauhome: {ndauhome}')
     print(f'build tmhome: {tmhome}')
     with within(chaos_go_repo):            
@@ -207,7 +235,7 @@ def chaos_node(chaos_node_build):
 
 
 @pytest.fixture(scope='session')
-def ndau_node_build(ndau_go_repo, get_ndauhome_dir):
+def ndau_node_build(ndau_go_repo, get_ndauhome_dir, get_ndau_tmhome_dir):
     """
     Build a single ndau node.
 
@@ -218,7 +246,7 @@ def ndau_node_build(ndau_go_repo, get_ndauhome_dir):
     That's what this fixture does.
     """
     ndauhome = get_ndauhome_dir
-    tmhome = tempfile.mkdtemp(prefix='tmhome-', dir='/tmp')
+    tmhome = get_ndau_tmhome_dir
     print(f'build ndauhome: {ndauhome}')
     print(f'build tmhome: {tmhome}')
     with within(ndau_go_repo):            
@@ -366,11 +394,14 @@ def chaos_node_and_tool(chaos_node, chaostool_build, chaos_node_exists):
         'PATH': os.environ['PATH'],
     }
 
-    address = 'http://' + chaos_node_exists['address'] + ':' + chaos_node_exists['nodenet0_rpc']
-    subp(
-        f'{chaostool_build["bin"]} conf {address}',
-        env=env,
-    )
+    # Localnet already has the conf set up.
+    if use_kub:
+        address = 'http://' + chaos_node_exists['address'] + ':' + chaos_node_exists['nodenet0_rpc']
+        subp(
+            f'{chaostool_build["bin"]} conf {address}',
+            env=env,
+        )
+
     return {
         'node': chaos_node,
         'tool': chaostool_build,
@@ -392,11 +423,14 @@ def ndau_node_and_tool(ndau_node, ndautool_build, ndau_node_exists):
         'PATH': os.environ['PATH'],
     }
 
-    address = 'http://' + ndau_node_exists['address'] + ':' + ndau_node_exists['nodenet0_rpc']
-    subp(
-        f'{ndautool_build["bin"]} conf {address}',
-        env=env,
-    )
+    # Localnet already has the conf set up.
+    if use_kub:
+        address = 'http://' + ndau_node_exists['address'] + ':' + ndau_node_exists['nodenet0_rpc']
+        subp(
+            f'{ndautool_build["bin"]} conf {address}',
+            env=env,
+        )
+
     return {
         'node': ndau_node,
         'tool': ndautool_build,
@@ -615,6 +649,46 @@ def ndau(ndau_node_and_tool):
         except subprocess.CalledProcessError as e:
             print(e.stdout)
             raise
+    return rf
+
+
+@pytest.fixture
+def chaos_namespace_query(chaos_node_and_tool):
+    """
+    Similar to chaos('dump <ns>') that allows for a non-zero return value.
+    """
+    def rf(ns, **kwargs):
+        try:
+            return subp(
+                f'{chaos_node_and_tool["tool"]["bin"]} dump {ns}',
+                env=chaos_node_and_tool["env"],
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+        except subprocess.CalledProcessError as e:
+            # Don't raise.  Callers use this to see if accounts exist.
+            return e.stdout.rstrip('\n')
+
+    return rf
+
+
+@pytest.fixture
+def ndau_account_query(ndau_node_and_tool):
+    """
+    Similar to ndau('account query <account_name>') that allows for a non-zero return value.
+    """
+    def rf(account_name, **kwargs):
+        try:
+            return subp(
+                f'{ndau_node_and_tool["tool"]["bin"]} account query {account_name}',
+                env=ndau_node_and_tool["env"],
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+        except subprocess.CalledProcessError as e:
+            # Don't raise.  Callers use this to see if accounts exist.
+            return e.stdout.rstrip('\n')
+
     return rf
 
 
