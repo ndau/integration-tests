@@ -1,22 +1,11 @@
 """Tests that single validator nodes operate as expected."""
-import os
-import subprocess
-from random import choice, choices
-from string import ascii_lowercase, digits
-from time import sleep
 import json
 
 import pytest
-import toml
 import pdb
 
 from src.util.subp import subp
-from pathlib import Path
-
-
-@pytest.fixture
-def _random_string(len=16):
-    return ''.join(choices(ascii_lowercase+digits, k=len))
+import src.util.helpers
 
 
 def test_get_ndau_status(use_kub, ndau):
@@ -29,8 +18,9 @@ def test_get_ndau_status(use_kub, ndau):
         assert moniker == subp('hostname')
 
 
-def test_create_account_pre_genesis(ndau, set_rfe_address, _random_string):
+def test_create_account_pre_genesis(ndau, set_rfe_address):
     """Create account, RFE to it, and check attributes"""
+    _random_string = src.util.helpers.random_string()
     known_ids = ndau('account list').splitlines()
     # make sure account does not already exist
     assert not any(_random_string in id_line for id_line in known_ids)
