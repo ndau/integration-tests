@@ -221,8 +221,8 @@ def chaos_node_exists(use_kub):
     print("chaos node exists")
     if use_kub:
         address = run_cmd('kubectl get nodes -o jsonpath=\'{.items[*].status.addresses[?(@.type=="ExternalIP")].address}\' | tr " " "\n" | head -n 1 | tr -d "[:space:]"')
-        nodenet0_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' devnet-0-nodegroup-chaos-tendermint-service')
-        nodenet1_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' devnet-1-nodegroup-chaos-tendermint-service')
+        nodenet0_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + src.util.constants.NODENET + '-0-nodegroup-chaos-tendermint-service')
+        nodenet1_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + src.util.constants.NODENET + '-1-nodegroup-chaos-tendermint-service')
     else:
         address = 'localhost'
         nodenet0_rpc = str(src.util.constants.LOCALNET0_CHAOS_RPC)
@@ -300,8 +300,8 @@ def ndau_node_exists(use_kub):
     print("ndau node exists")
     if use_kub:
         address = run_cmd('kubectl get nodes -o jsonpath=\'{.items[*].status.addresses[?(@.type=="ExternalIP")].address}\' | tr " " "\n" | head -n 1 | tr -d "[:space:]"')
-        nodenet0_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' devnet-0-nodegroup-ndau-tendermint-service')
-        nodenet1_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' devnet-1-nodegroup-ndau-tendermint-service')
+        nodenet0_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + src.util.constants.NODENET + '-0-nodegroup-ndau-tendermint-service')
+        nodenet1_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + src.util.constants.NODENET + '-1-nodegroup-ndau-tendermint-service')
     else:
         address = 'localhost'
         nodenet0_rpc = str(src.util.constants.LOCALNET0_NDAU_RPC)

@@ -8,6 +8,7 @@ import pdb
 import json
 
 from src.util.subp import subp
+import src.util.constants
 import src.util.helpers
 
 
@@ -51,7 +52,7 @@ def test_get_chaos_status(use_kub, chaos):
     info = json.loads(chaos('info'))
     moniker = info['node_info']['moniker']
     if use_kub:
-        assert moniker == 'devnet-0'
+        assert moniker == f'{src.util.constants.NODENET}-0'
     else:
         assert moniker == subp('hostname')
 

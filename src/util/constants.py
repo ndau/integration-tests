@@ -2,6 +2,10 @@
 Constants applicable to running integration tests against local nodes.
 """
 
+
+# Which node net we want to hit when running --use=kub.
+NODENET = 'devnet'
+
 # These must match constants from the commands/bin/env.sh file.
 LOCALNET0_CHAOS_RPC = 26657
 LOCALNET0_NDAU_RPC = 26662
