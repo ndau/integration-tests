@@ -15,8 +15,8 @@ def set_up_account(ndau, account):
     Helper function for creating a new account, rfe'ing to it, claiming it.
     """
     ndau(f'account new {account}')
-    ndau(f'account claim {account}')
     ndau(f'rfe 10 {account}')
+    ndau(f'account claim {account}')
 
 
 def set_up_namespace(chaos, ns):

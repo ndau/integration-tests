@@ -732,8 +732,8 @@ def set_rfe_address(use_kub, ndau):
     # write RFE address and keys into ndautool.toml file
     f = open(conf_path, 'a')
     f.write('[rfe]\n')
-    f.write(f'address = "{src.util.constants.RFE_ADDRESS}"\n')
-    f.write(f'keys = ["{src.util.constants.RFE_KEY}"]\n')
+    f.write(f'  address = "{src.util.constants.RFE_ADDRESS}"\n')
+    f.write(f'  keys = ["{src.util.constants.RFE_KEY}"]\n')
     f.close()
 
     # make sure RFE address exists in ndautool.toml file

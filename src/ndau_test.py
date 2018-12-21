@@ -44,4 +44,5 @@ def test_create_account_pre_genesis(ndau, set_rfe_address):
     account_data = json.loads(ndau(f'account query {_random_string}'))
     assert account_data['validationKeys'] != None
     # check that 0 napu tx fee was deducted from account, there are no tx fees pre-genesis
-    assert account_data['balance'] == 1000000000
+    expected_balance = 1000000000
+    assert account_data['balance'] == expected_balance

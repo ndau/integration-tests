@@ -56,7 +56,7 @@ def test_get_chaos_status(use_kub, node_net, chaos):
         assert moniker == subp('hostname')
 
 
-def test_create_id(chaos, ndau):
+def test_create_id(chaos, ndau, set_rfe_address):
     """First line is always a header."""
     _random_string = src.util.helpers.random_string()
     known_ids = chaos('id list').splitlines()[1:]
