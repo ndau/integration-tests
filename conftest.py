@@ -73,7 +73,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(autouse=True, scope='session')
-def setup_teardown(chaos_go_repo, ndau_go_repo):
+def setup_teardown(chaos_go_repo, chaostool_repo, whitelist_repo, ndau_go_repo, ndautool_repo):
     # Setup...
 
     yield
@@ -81,10 +81,9 @@ def setup_teardown(chaos_go_repo, ndau_go_repo):
     # Teardown...
 
     # Wipe temp .kube directories after all tests complete.
-    with within(chaos_go_repo):
-        run_localenv('rm -rf .kube')
-    with within(ndau_go_repo):
-        run_localenv('rm -rf .kube')
+    for repo in (chaos_go_repo, chaostool_repo, whitelist_repo, ndau_go_repo, ndautool_repo):
+        with within(repo):
+            run_localenv('rm -rf .kube')
 
 
 @pytest.fixture(scope='session')
