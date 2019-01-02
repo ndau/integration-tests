@@ -38,10 +38,8 @@ def pytest_addoption(parser):
                      default=False, help="skip meta tests")
     parser.addoption("--keeptemp", action="store_true",
                      default=False, help="keep temporary files for debugging failures")
-    parser.addoption("--use", action="store",
-                     default="kub", help="use 'kub'ernetes devnet nodes or 'loc'al nodes")
-    parser.addoption("--nodenet", action="store",
-                     default="devnet", help="which node net to hit when using kub")
+    parser.addoption("--net", action="store",
+                     default="devnet", help="which node net to use, e.g. devnet or localnet")
 
 
 @pytest.fixture(scope='session')
@@ -51,12 +49,12 @@ def keeptemp(request):
 
 @pytest.fixture(scope='session')
 def use_kub(request):
-    return request.config.getoption("--use") == "kub"
+    return request.config.getoption("--net") != "localnet"
 
 
 @pytest.fixture(scope='session')
 def node_net(request):
-    return request.config.getoption("--nodenet")
+    return request.config.getoption("--net")
 
 
 def pytest_collection_modifyitems(config, items):
