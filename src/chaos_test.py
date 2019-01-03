@@ -46,14 +46,11 @@ def chaos_and_whitelist(chaos_node_and_tool, whitelist_build):
     return {'chaos': ch_f, 'whitelist': wl_f}
 
 
-def test_get_chaos_status(use_kub, node_net, chaos):
+def test_get_chaos_status(node_net, chaos):
     """`chaostool` can connect to `chaos-go` and get status."""
     info = json.loads(chaos('info'))
     moniker = info['node_info']['moniker']
-    if use_kub:
-        assert moniker == f'{node_net}-0'
-    else:
-        assert moniker == subp('hostname')
+    assert moniker == f'{node_net}-0'
 
 
 def test_create_id(chaos, ndau, set_rfe_address):
