@@ -3,13 +3,11 @@ Constants applicable to running integration tests against local nodes.
 """
 
 
-# These must match constants from the commands/bin/env.sh file.
-LOCALNET0_CHAOS_RPC = 26657
-LOCALNET0_NDAU_RPC = 26662
-
-# TODO: Once we have commands/bin/*.sh able to run multiple nodes, update these ports.
-LOCALNET1_CHAOS_RPC = 26657
-LOCALNET1_NDAU_RPC = 26662
+# These must match constants from the commands/bin/env.sh file for localnet node 0 and 1.
+LOCALNET0_CHAOS_RPC = 26670
+LOCALNET0_NDAU_RPC  = 26671
+LOCALNET1_CHAOS_RPC = 26672
+LOCALNET1_NDAU_RPC  = 26673
 
 # These must match devnet's genesis files.
 RFE_ADDRESS = 'ndmfgnz9qby6nyi35aadjt9nasjqxqyd4vrswucwfmceqs3y'
