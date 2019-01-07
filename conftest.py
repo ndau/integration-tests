@@ -92,7 +92,7 @@ def get_ndauhome_dir(use_kub, keeptemp):
         ndauhome_dir = tempfile.mkdtemp(prefix='ndauhome-', dir='/tmp')
     else:
         # Use the local ndau home directory that's already there, set up by the localnet.
-        ndauhome_dir = os.path.expanduser('~/.ndau')
+        ndauhome_dir = os.path.expanduser('~/.localnet/data/ndau-0')
         # Make sure it's really there.  If it isn't, the user hasn't set up a local server.
         assert os.path.isdir(ndauhome_dir)
     yield ndauhome_dir
@@ -106,7 +106,7 @@ def get_chaos_tmhome_dir(use_kub, keeptemp):
         tmhome_dir = tempfile.mkdtemp(prefix='tmhome-', dir='/tmp')
     else:
         # Use the local tm home directory that's already there, set up by the localnet.
-        tmhome_dir = os.path.expanduser('~/.tendermint-chaos')
+        tmhome_dir = os.path.expanduser('~/.localnet/data/tendermint-chaos-0')
         # Make sure it's really there.  If it isn't, the user hasn't set up a local server.
         assert os.path.isdir(tmhome_dir)
     yield tmhome_dir
@@ -120,7 +120,7 @@ def get_ndau_tmhome_dir(use_kub, keeptemp):
         tmhome_dir = tempfile.mkdtemp(prefix='tmhome-', dir='/tmp')
     else:
         # Use the local tm home directory that's already there, set up by the localnet.
-        tmhome_dir = os.path.expanduser('~/.tendermint-ndau')
+        tmhome_dir = os.path.expanduser('~/.localnet/data/tendermint-ndau-0')
         # Make sure it's really there.  If it isn't, the user hasn't set up a local server.
         assert os.path.isdir(tmhome_dir)
     yield tmhome_dir

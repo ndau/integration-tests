@@ -8,14 +8,11 @@ from src.util.subp import subp
 import src.util.helpers
 
 
-def test_get_ndau_status(use_kub, node_net, ndau):
+def test_get_ndau_status(node_net, ndau):
     """`ndautool` can connect to `ndau node` and get status."""
     info = json.loads(ndau('info'))
     moniker = info['node_info']['moniker']
-    if use_kub:
-        assert moniker == f'{node_net}-0'
-    else:
-        assert moniker == subp('hostname')
+    assert moniker == f'{node_net}-0'
 
 
 def test_create_account_pre_genesis(ndau, set_rfe_address):
