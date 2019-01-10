@@ -238,7 +238,7 @@ def chaos_node_exists(use_kub, node_net):
     nodenet1_res = run_cmd(f'curl -s http://{address}:{nodenet1_rpc}/status')
     print(f'nodenet0_res: {nodenet0_res}')
     print(f'nodenet1_res: {nodenet1_res}')
-    return {
+    yield {
         'address': address,
         'nodenet0_rpc': nodenet0_rpc,
         'nodenet1_rpc': nodenet1_rpc
@@ -317,7 +317,7 @@ def ndau_node_exists(use_kub, node_net):
     nodenet1_res = run_cmd(f'curl -s http://{address}:{nodenet1_rpc}/status')
     print(f'nodenet0_res: {nodenet0_res}')
     print(f'nodenet1_res: {nodenet1_res}')
-    return {
+    yield {
         'address': address,
         'nodenet0_rpc': nodenet0_rpc,
         'nodenet1_rpc': nodenet1_rpc
@@ -713,7 +713,6 @@ def ndau_account_query(ndau_node_and_tool):
 @pytest.fixture
 def set_rfe_address(use_kub, ndau):
     # When running on localnet, the rfe address is already present in the config.
-    # We don't know what its address is, but our tests don't care.
     if not use_kub:
         return
 
