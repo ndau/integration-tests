@@ -8,6 +8,13 @@ from src.util.subp import subp
 import src.util.helpers
 
 
+def test_prepare(set_addresses_in_toml):
+    """
+    This is here as an initial step that must happen before any other tests run in this file.
+    It invokes the set_addresses_in_toml fixture.
+    """
+
+
 def test_get_ndau_status(node_net, ndau):
     """`ndautool` can connect to `ndau node` and get status."""
     info = json.loads(ndau('info'))
@@ -15,7 +22,7 @@ def test_get_ndau_status(node_net, ndau):
     assert moniker == f'{node_net}-0'
 
 
-def test_create_account_pre_genesis(ndau, set_rfe_address):
+def test_create_account_pre_genesis(ndau):
     """Create account, RFE to it, and check attributes"""
     _random_string = src.util.helpers.random_string()
     known_ids = ndau('account list').splitlines()

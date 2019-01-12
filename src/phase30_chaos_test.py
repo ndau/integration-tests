@@ -11,6 +11,13 @@ from src.util.subp import subp
 import src.util.helpers
 
 
+def test_prepare(set_addresses_in_toml):
+    """
+    This is here as an initial step that must happen before any other tests run in this file.
+    It invokes the set_addresses_in_toml fixture.
+    """
+
+
 @pytest.fixture
 def chaos_and_whitelist(chaos_node_and_tool, whitelist_build):
     """
@@ -53,7 +60,7 @@ def test_get_chaos_status(node_net, chaos):
     assert moniker == f'{node_net}-0'
 
 
-def test_create_id(chaos, ndau, set_rfe_address):
+def test_create_id(chaos, ndau):
     """First line is always a header."""
     _random_string = src.util.helpers.random_string()
     known_ids = chaos('id list').splitlines()[1:]

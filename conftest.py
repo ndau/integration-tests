@@ -711,29 +711,40 @@ def ndau_account_query(ndau_node_and_tool):
 
 
 @pytest.fixture
-def set_rfe_address(use_kub, ndau):
+def set_addresses_in_toml(use_kub, ndau):
     # When running on localnet, the rfe address is already present in the config.
     if not use_kub:
         return
 
     conf_path = ndau('conf-path')
 
-    # If the rfe entry is there already, we're done.
+    # If the entries are there already, we're done.
     f = open(conf_path, 'r')
     conf_lines = f.readlines()
     f.close()
-    if any(src.util.constants.RFE_ADDRESS in line for line in conf_lines):
+    if any(src.util.constants.RFE_ADDRESS in line for line in conf_lines) and \
+       any(src.util.constants.NNR_ADDRESS in line for line in conf_lines) and \
+       any(src.util.constants.CVC_ADDRESS in line for line in conf_lines):
         return
 
-    # write RFE address and keys into ndautool.toml file
+    # Write addresses and keys into ndautool.toml file.
     f = open(conf_path, 'a')
     f.write('[rfe]\n')
     f.write(f'  address = "{src.util.constants.RFE_ADDRESS}"\n')
     f.write(f'  keys = ["{src.util.constants.RFE_KEY}"]\n')
+    f.write('\n')
+    f.write('[nnr]\n')
+    f.write(f'  address = "{src.util.constants.NNR_ADDRESS}"\n')
+    f.write(f'  keys = ["{src.util.constants.NNR_KEY}"]\n')
+    f.write('[cvc]\n')
+    f.write(f'  address = "{src.util.constants.CVC_ADDRESS}"\n')
+    f.write(f'  keys = ["{src.util.constants.CVC_KEY}"]\n')
     f.close()
 
-    # make sure RFE address exists in ndautool.toml file
+    # Make sure the addresses exist in ndautool.toml file.
     f = open(conf_path, 'r')
     conf_lines = f.readlines()
     f.close()
     assert any(src.util.constants.RFE_ADDRESS in line for line in conf_lines)
+    assert any(src.util.constants.NNR_ADDRESS in line for line in conf_lines)
+    assert any(src.util.constants.CVC_ADDRESS in line for line in conf_lines)

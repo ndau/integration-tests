@@ -13,7 +13,11 @@ LOCALNET1_NDAU_RPC  = 26673
 # Some of these we could conceivably get using ndau/chaos tool commands, but some are not exposed.
 SYSTEM_NAMESPACE = 'OHCPYCsIi3VtEKrLsrqGdcglqlvNci3bbrYVr/09sWc='
 RFE_ADDRESS = 'ndmfgnz9qby6nyi35aadjt9nasjqxqyd4vrswucwfmceqs3y'
-RFE_KEY = 'npvtayjadtcbid6g7nm4xey8ff2vd5vs3fxaev6gdhhjsmv8zvp997rm69miahnxms7fi5k6rkkrecp7br3rwdd8frxdiexjvcdcf9itqaz578mqu6fk82cgce3s'
+RFE_KEY = 'npvtayjadtcbictc27a55zyz66yb53ygn4cc9qgxm3m2x3wmnhfyrwkwipwupxeijsmazxir586bfpeuqncud6z72veb3zn5kd62myri589uit6ta4kas5def9ii'
+NNR_ADDRESS = 'ndnf9ffbzhyf8mk7z5vvqc4quzz5i2exp5zgsmhyhc9cuwr4'
+NNR_KEY = 'npvtayjadtcbiavi5k4g6jxwmnpt5cky7xpbkhsrt5ev757wssnb8u3d5wyw38ykgz2v4uwhug954qq6wv38jkrwdpp2pndia4hqif72ezv4wcinaiyhaiaapzaj'
+CVC_ADDRESS = 'ndnf9ffbzhyf8mk7z5vvqc4quzz5i2exp5zgsmhyhc9cuwr4'
+CVC_KEY = 'npvtayjadtcbiavi5k4g6jxwmnpt5cky7xpbkhsrt5ev757wssnb8u3d5wyw38ykgz2v4uwhug954qq6wv38jkrwdpp2pndia4hqif72ezv4wcinaiyhaiaapzaj'
 EAI_FEE_TABLE = [
     '4000000:ndaea8w9gz84ncxrytepzxgkg9ymi4k7c9p427i6b57xw3r4',
     '1000000:ndmmw2cwhhgcgk9edp5tiieqab3pq7uxdic2wabzx49twwxh',

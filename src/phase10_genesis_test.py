@@ -15,6 +15,13 @@ import src.util.constants
 import src.util.helpers
 
 
+def test_prepare(set_addresses_in_toml):
+    """
+    This is here as an initial step that must happen before any other tests run in this file.
+    It invokes the set_addresses_in_toml fixture.
+    """
+
+
 class Account:
     def __init__(self, act, flg, pct, bal):
         self.account = act # Account name or address.
@@ -23,7 +30,7 @@ class Account:
         self.balance = bal # Initial balance of the account before CreditEAI.
 
 
-def test_pre_genesis_rfe(ndau, chaos, set_rfe_address, ndau_node_exists):
+def test_pre_genesis_rfe(ndau, chaos, ndau_node_exists):
     """
     Create a few RFE transactions to simulate initial purchasers filling the blockchain
     without tx fees present.
