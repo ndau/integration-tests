@@ -54,6 +54,7 @@ def test_genesis_eai(ndau, ndau_no_error, ndau_node_exists):
     ndau(f'account new {node_account}')
     ndau(f'account claim {node_account}')
     ndau(f'rfe 1000 {node_account}')
+    node_account_percent = 0 # We'll get this from the EAIFeeTable.
 
     # Self-stake and register the node account to the node.
     ndau(f'account stake {node_account} {node_account}')
@@ -62,6 +63,12 @@ def test_genesis_eai(ndau, ndau_no_error, ndau_node_exists):
     distribution_script_bytes = b'\xa0\x00\x88'
     distribution_script = base64.b64encode(distribution_script_bytes).decode('utf-8')
     ndau(f'account register-node {node_account} {rpc_address} {distribution_script}')
+
+    # Set up a reward target account.
+    reward_account = src.util.helpers.random_string()
+    ndau(f'account new {reward_account}')
+    ndau(f'account claim {reward_account}')
+    ndau(f'account set-rewards-target {node_account} {reward_account}')
 
     # Delegate purchaser account to node account.
     ndau(f'account delegate {purchaser_account} {node_account}')
@@ -77,6 +84,7 @@ def test_genesis_eai(ndau, ndau_no_error, ndau_node_exists):
         if len(acct) == 0:
             acct = node_account
             flag = '' # node_account is an account name, no flag when querying account data.
+            node_account_percent = pct / scale
         else:
             flag = '-a' # acct is an address, must use the -a flag when querying account data.
         account_data = json.loads(ndau(f'account query {flag} {acct}'))
@@ -93,7 +101,7 @@ def test_genesis_eai(ndau, ndau_no_error, ndau_node_exists):
     # This is the napu you earn with the amount of locked ndau in play, with no time passing.
     # It's outside the scope of this test to compute this value.  Unit tests take care of that.
     # This integration test makes sure that all the accounts in the EAIFeeTable get their cut.
-    total_napu_expect = 2853800
+    total_napu_expect = 3805100
 
     # Check that EAI was credited to all the right accounts.
     for account in accounts:
@@ -111,13 +119,12 @@ def test_genesis_eai(ndau, ndau_no_error, ndau_node_exists):
     # When running against localnet, we can do a reset easily to test NNR repeatedly.
     nnr_result = ndau_no_error(f'nnr -g')
     if not nnr_result.startswith('not enough time since last NNR'):
-        # Claim node rewards and see that the node operator gets his cut from the credited EAI.
-        for account in accounts:
-            if account.account == node_account:
-                ndau(f'account claim-node-reward {node_account}')
-                account_data = json.loads(ndau(f'account query {node_account}'))
-                new_balance = account_data['balance']
-                eai_expect = int(total_napu_expect * account.percent)
-                eai_actual = new_balance - account.balance
-                assert eai_actual == eai_expect
-                break
+        # Claim node rewards and see that the node operator gets his EAI in the reward account.
+        # We check the reward account.  If we didn't set a reward target, then the node account
+        # would receive the ndau here.  That was tested and worked, but since we can only do one
+        # NNR per day, we test the more complex situation of awarding to a target reward account.
+        ndau(f'account claim-node-reward {node_account}')
+        account_data = json.loads(ndau(f'account query {reward_account}'))
+        eai_actual = account_data['balance']
+        eai_expect = int(total_napu_expect * node_account_percent)
+        assert eai_actual == eai_expect
