@@ -671,6 +671,50 @@ def ndau(ndau_node_and_tool):
 
 
 @pytest.fixture
+def chaos_no_error(chaos_node_and_tool):
+    """
+    Fixture providing a chaos function.
+
+    This function calls the chaos command in a configured environment.
+    """
+    def rf(cmd, **kwargs):
+        try:
+            return subp(
+                f'{chaos_node_and_tool["tool"]["bin"]} {cmd}',
+                env=chaos_node_and_tool["env"],
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+        except subprocess.CalledProcessError as e:
+            # Don't raise.  Callers use this to process the error message.
+            return e.stdout.rstrip('\n')
+
+    return rf
+
+
+@pytest.fixture
+def ndau_no_error(ndau_node_and_tool):
+    """
+    Fixture providing a ndau function.
+
+    This function calls the ndau command in a configured environment.
+    """
+    def rf(cmd, **kwargs):
+        try:
+            return subp(
+                f'{ndau_node_and_tool["tool"]["bin"]} {cmd}',
+                env=ndau_node_and_tool["env"],
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+        except subprocess.CalledProcessError as e:
+            # Don't raise.  Callers use this to process the error message.
+            return e.stdout.rstrip('\n')
+
+    return rf
+
+
+@pytest.fixture
 def chaos_namespace_query(chaos_node_and_tool):
     """
     Similar to chaos('dump <ns>') that allows for a non-zero return value.

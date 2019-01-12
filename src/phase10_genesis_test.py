@@ -30,10 +30,10 @@ class Account:
         self.balance = bal # Initial balance of the account before CreditEAI.
 
 
-def test_pre_genesis_rfe(ndau, chaos, ndau_node_exists):
+def test_genesis_eai(ndau, ndau_no_error, ndau_node_exists):
     """
     Create a few RFE transactions to simulate initial purchasers filling the blockchain
-    without tx fees present.
+    without tx fees present.  Then CreditEAI and NNR and make sure all accounts get their EAI.
     """
 
     # Set up a purchaser account.
@@ -106,3 +106,18 @@ def test_pre_genesis_rfe(ndau, chaos, ndau_node_exists):
             eai_expect = int(total_napu_expect * account.percent)
         eai_actual = new_balance - account.balance
         assert eai_actual == eai_expect
+
+    # Nominate node rewards.  Unfortunately, we can only run this integration test once per day.
+    # When running against localnet, we can do a reset easily to test NNR repeatedly.
+    nnr_result = ndau_no_error(f'nnr -g')
+    if not nnr_result.startswith('not enough time since last NNR'):
+        # Claim node rewards and see that the node operator gets his cut from the credited EAI.
+        for account in accounts:
+            if account.account == node_account:
+                ndau(f'account claim-node-reward {node_account}')
+                account_data = json.loads(ndau(f'account query {node_account}'))
+                new_balance = account_data['balance']
+                eai_expect = int(total_napu_expect * account.percent)
+                eai_actual = new_balance - account.balance
+                assert eai_actual == eai_expect
+                break
