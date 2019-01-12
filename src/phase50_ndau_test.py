@@ -39,6 +39,6 @@ def test_create_account(ndau, set_rfe_address):
     ndau(f'account claim {_random_string}')
     account_data = json.loads(ndau(f'account query {_random_string}'))
     assert account_data['validationKeys'] != None
-    # check that 1 napu tx fee was deducted from account
-    expected_balance = 999999999
+    # check that 0 napu tx fee was deducted from account, there are no tx fees pre-genesis
+    expected_balance = 1000000000
     assert account_data['balance'] == expected_balance

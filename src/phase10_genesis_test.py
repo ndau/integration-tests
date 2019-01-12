@@ -7,6 +7,7 @@ Test:
 
 import base64
 import json
+import math
 import os.path
 import pytest
 import toml
@@ -32,10 +33,14 @@ def test_pre_genesis_rfe(ndau, chaos, set_rfe_address, ndau_node_exists):
     purchaser_account = src.util.helpers.random_string()
     ndau(f'account new {purchaser_account}')
     ndau(f'account claim {purchaser_account}')
+
     # Put a lot of ndau in there so small EAI fee percentages are non-zero.
-    ndau(f'rfe 1000000 {purchaser_account}')
+    ndau_locked = 1000000
+    ndau(f'rfe {ndau_locked} {purchaser_account}')
+
     # Lock it for a long time to maximize EAI.
-    ndau(f'account lock {purchaser_account} 3y')
+    lock_years = 3
+    ndau(f'account lock {purchaser_account} {lock_years}y')
 
     # Set up a node operator account with 1000 ndau needed to self-stake.
     node_account = src.util.helpers.random_string()
@@ -79,7 +84,10 @@ def test_pre_genesis_rfe(ndau, chaos, set_rfe_address, ndau_node_exists):
     ndau(f'account credit-eai {node_account}')
 
     # This is the napu you earn with the amount of locked ndau in play, with no time passing.
-    total_eai_expect = 2853800 # 0.028538 ndau
+    # It's outside the scope of this test to compute this value.  Unit tests take care of that.
+    # This integration test makes sure that all the accounts in the EAIFeeTable get their cut.
+    total_napu_expect = 2853800
+
     # Check that EAI was credited to all the right accounts.
     for account in accounts:
         account_data = json.loads(ndau(f'account query {account.flag} {account.account}'))
@@ -88,6 +96,6 @@ def test_pre_genesis_rfe(ndau, chaos, set_rfe_address, ndau_node_exists):
         if account.account == node_account:
             eai_expect = 0
         else:
-            eai_expect = int(total_eai_expect * account.percent)
+            eai_expect = int(total_napu_expect * account.percent)
         eai_actual = new_balance - account.balance
         assert eai_actual == eai_expect
