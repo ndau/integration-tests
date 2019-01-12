@@ -4,6 +4,7 @@ import json
 import pytest
 import pdb
 
+from src.util.subp import subp
 import src.util.helpers
 
 
@@ -14,7 +15,7 @@ def test_get_ndau_status(node_net, ndau):
     assert moniker == f'{node_net}-0'
 
 
-def test_create_account(ndau, set_rfe_address):
+def test_create_account_pre_genesis(ndau, set_rfe_address):
     """Create account, RFE to it, and check attributes"""
     _random_string = src.util.helpers.random_string()
     known_ids = ndau('account list').splitlines()
