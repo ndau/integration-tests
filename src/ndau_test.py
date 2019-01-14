@@ -46,7 +46,7 @@ def test_create_account(ndau, set_post_genesis_tx_fees):
 
 
 def test_transfer(ndau):
-    """Test Transfer transation"""
+    """Test Transfer transaction"""
 
     # Set up accounts to transfer between.
     account1 = src.util.helpers.random_string()
@@ -65,13 +65,13 @@ def test_transfer(ndau):
 
 
 def test_transfer_lock(ndau):
-    """Test TransferLock transation"""
+    """Test TransferLock transaction"""
 
     # Set up source claimed account with funds.
     account1 = src.util.helpers.random_string()
     src.util.helpers.set_up_account(ndau, account1)
 
-    # Create destination account.
+    # Create destination account, but don't claim or rfe to it (otherwise transfer-lock fails).
     account2 = src.util.helpers.random_string()
     ndau(f'account new {account2}')
 
@@ -88,7 +88,7 @@ def test_transfer_lock(ndau):
 
 
 def test_transfer_lock_notify(ndau):
-    """Test Lock and Notify transations"""
+    """Test Lock and Notify transactions"""
 
     # Set up account to lock.
     account = src.util.helpers.random_string()
