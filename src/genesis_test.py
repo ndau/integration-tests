@@ -23,7 +23,7 @@ class Account:
         self.balance = bal # Initial balance of the account before CreditEAI.
 
 
-def test_genesis_eai(ndau, ndau_no_error, ndau_node_exists):
+def test_genesis_eai(ndau, ndau_no_error, ndau_node_exists, set_pre_genesis_tx_fees):
     """
     Create a few RFE transactions to simulate initial purchasers filling the blockchain
     without tx fees present.  Then CreditEAI and NNR and make sure all accounts get their EAI.
