@@ -754,7 +754,7 @@ def ndau_account_query(ndau_node_and_tool):
     return rf
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def set_addresses_in_toml(use_kub, ndau):
     # When running on localnet, the rfe address is already present in the config.
     if not use_kub:

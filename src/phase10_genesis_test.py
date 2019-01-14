@@ -15,13 +15,6 @@ import src.util.constants
 import src.util.helpers
 
 
-def test_prepare(set_addresses_in_toml):
-    """
-    This is here as an initial step that must happen before any other tests run in this file.
-    It invokes the set_addresses_in_toml fixture.
-    """
-
-
 class Account:
     def __init__(self, act, flg, pct, bal):
         self.account = act # Account name or address.

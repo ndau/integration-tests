@@ -11,13 +11,6 @@ from src.util.subp import subp
 import src.util.helpers
 
 
-def test_prepare(set_addresses_in_toml):
-    """
-    This is here as an initial step that must happen before any other tests run in this file.
-    It invokes the set_addresses_in_toml fixture.
-    """
-
-
 @pytest.fixture
 def chaos_and_whitelist(chaos_node_and_tool, whitelist_build):
     """
