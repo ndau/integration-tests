@@ -43,3 +43,50 @@ def test_create_account_pre_genesis(ndau):
     # check that 0 napu tx fee was deducted from account, there are no tx fees pre-genesis
     expected_balance = 1000000000
     assert account_data['balance'] == expected_balance
+
+
+def test_transfer(ndau):
+    """Test transfer transations"""
+
+    # Set up accounts to transfer between.
+    account1 = src.util.helpers.random_string()
+    src.util.helpers.set_up_account(ndau, account1)
+    account2 = src.util.helpers.random_string()
+    src.util.helpers.set_up_account(ndau, account2)
+
+    # This account gets fully created by transfer-lock.
+    account3 = src.util.helpers.random_string()
+    ndau(f'account new {account3}')
+
+    # Transfer
+    ndau(f'transfer 1 {account1} {account2}')
+    account_data1 = json.loads(ndau(f'account query {account1}'))
+    account_data2 = json.loads(ndau(f'account query {account2}'))
+    assert account_data1['balance'] == 900000000
+    assert account_data1['lock'] == None
+    assert account_data2['balance'] == 1100000000
+    assert account_data2['lock'] == None
+
+    lock_months = 3
+
+    # TransferLock
+    ndau(f'transfer-lock 1 {account1} {account3} {lock_months}m')
+    account_data1 = json.loads(ndau(f'account query {account1}'))
+    account_data3 = json.loads(ndau(f'account query {account3}'))
+    assert account_data1['balance'] == 800000000
+    assert account_data1['lock'] == None
+    assert account_data3['balance'] == 100000000
+    assert account_data3['lock'] != None
+    assert account_data3['lock']['unlocksOn'] == None
+
+    # Lock
+    ndau(f'account lock {account2} {lock_months}m')
+    account_data2 = json.loads(ndau(f'account query {account2}'))
+    assert account_data2['lock'] != None
+    assert account_data2['lock']['unlocksOn'] == None
+
+    # Notify
+    ndau(f'account notify {account2}')
+    account_data2 = json.loads(ndau(f'account query {account2}'))
+    assert account_data2['lock'] != None
+    assert account_data2['lock']['unlocksOn'] != None
