@@ -98,22 +98,27 @@ def test_genesis_eai(ndau, ndau_no_error, ndau_node_exists):
     # The initial CreditEAI
     ndau(f'account credit-eai {node_account}')
 
-    # This is the napu you earn with the amount of locked ndau in play, with no time passing.
+    # We'll compute napu you earn with the amount of locked ndau in play, with no time passing.
     # It's outside the scope of this test to compute this value.  Unit tests take care of that.
     # This integration test makes sure that all the accounts in the EAIFeeTable get their cut.
-    total_napu_expect = 3805100
+    total_napu_expect = 0
+    # Sort the highest percentages first to make our total expected napu more accurate.
+    accounts = sorted(accounts, key=lambda account: account.percent, reverse=True)
 
     # Check that EAI was credited to all the right accounts.
     for account in accounts:
         account_data = json.loads(ndau(f'account query {account.flag} {account.account}'))
         new_balance = account_data['balance']
+        eai_actual = new_balance - account.balance
         # Node operators don't get their cut of EAI until node rewards are claimed.
         if account.account == node_account:
             eai_expect = 0
         else:
+            if total_napu_expect == 0:
+                total_napu_expect = int(eai_actual / account.percent)
             eai_expect = int(total_napu_expect * account.percent)
-        eai_actual = new_balance - account.balance
-        assert eai_actual == eai_expect
+        # Allow off-by-one discrepancies since we computed total napu using floating point.
+        assert abs(eai_actual - eai_expect) <= 1
 
     # Nominate node rewards.  Unfortunately, we can only run this integration test once per day.
     # When running against localnet, we can do a reset easily to test NNR repeatedly.
@@ -127,4 +132,5 @@ def test_genesis_eai(ndau, ndau_no_error, ndau_node_exists):
         account_data = json.loads(ndau(f'account query {reward_account}'))
         eai_actual = account_data['balance']
         eai_expect = int(total_napu_expect * node_account_percent)
-        assert eai_actual == eai_expect
+        # Allow off-by-one discrepancies since we computed total napu using floating point.
+        assert abs(eai_actual - eai_expect) <= 1
