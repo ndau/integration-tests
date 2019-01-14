@@ -15,7 +15,7 @@ def test_get_ndau_status(node_net, ndau):
     assert moniker == f'{node_net}-0'
 
 
-def test_create_account_pre_genesis(ndau, set_post_genesis_tx_fees):
+def test_create_account(ndau, set_post_genesis_tx_fees):
     """Create account, RFE to it, and check attributes"""
     _random_string = src.util.helpers.random_string()
     known_ids = ndau('account list').splitlines()
