@@ -15,7 +15,7 @@ def test_get_ndau_status(node_net, ndau):
     assert moniker == f'{node_net}-0'
 
 
-def test_create_account_pre_genesis(ndau, set_rfe_address):
+def test_create_account_pre_genesis(ndau):
     """Create account, RFE to it, and check attributes"""
     _random_string = src.util.helpers.random_string()
     known_ids = ndau('account list').splitlines()
@@ -43,3 +43,66 @@ def test_create_account_pre_genesis(ndau, set_rfe_address):
     # check that 0 napu tx fee was deducted from account, there are no tx fees pre-genesis
     expected_balance = 1000000000
     assert account_data['balance'] == expected_balance
+
+
+def test_transfer(ndau):
+    """Test Transfer transaction"""
+
+    # Set up accounts to transfer between.
+    account1 = src.util.helpers.random_string()
+    src.util.helpers.set_up_account(ndau, account1)
+    account2 = src.util.helpers.random_string()
+    src.util.helpers.set_up_account(ndau, account2)
+
+    # Transfer
+    ndau(f'transfer 1 {account1} {account2}')
+    account_data1 = json.loads(ndau(f'account query {account1}'))
+    account_data2 = json.loads(ndau(f'account query {account2}'))
+    assert account_data1['balance'] == 900000000
+    assert account_data1['lock'] == None
+    assert account_data2['balance'] == 1100000000
+    assert account_data2['lock'] == None
+
+
+def test_transfer_lock(ndau):
+    """Test TransferLock transaction"""
+
+    # Set up source claimed account with funds.
+    account1 = src.util.helpers.random_string()
+    src.util.helpers.set_up_account(ndau, account1)
+
+    # Create destination account, but don't claim or rfe to it (otherwise transfer-lock fails).
+    account2 = src.util.helpers.random_string()
+    ndau(f'account new {account2}')
+
+    # TransferLock
+    lock_months = 3
+    ndau(f'transfer-lock 1 {account1} {account2} {lock_months}m')
+    account_data1 = json.loads(ndau(f'account query {account1}'))
+    account_data2 = json.loads(ndau(f'account query {account2}'))
+    assert account_data1['balance'] == 900000000
+    assert account_data1['lock'] == None
+    assert account_data2['balance'] == 100000000
+    assert account_data2['lock'] != None
+    assert account_data2['lock']['unlocksOn'] == None
+
+
+def test_transfer_lock_notify(ndau):
+    """Test Lock and Notify transactions"""
+
+    # Set up account to lock.
+    account = src.util.helpers.random_string()
+    src.util.helpers.set_up_account(ndau, account)
+
+    # Lock
+    lock_months = 3
+    ndau(f'account lock {account} {lock_months}m')
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['lock'] != None
+    assert account_data['lock']['unlocksOn'] == None
+
+    # Notify
+    ndau(f'account notify {account}')
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['lock'] != None
+    assert account_data['lock']['unlocksOn'] != None

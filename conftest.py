@@ -238,7 +238,7 @@ def chaos_node_exists(use_kub, node_net):
     nodenet1_res = run_cmd(f'curl -s http://{address}:{nodenet1_rpc}/status')
     print(f'nodenet0_res: {nodenet0_res}')
     print(f'nodenet1_res: {nodenet1_res}')
-    return {
+    yield {
         'address': address,
         'nodenet0_rpc': nodenet0_rpc,
         'nodenet1_rpc': nodenet1_rpc
@@ -317,7 +317,7 @@ def ndau_node_exists(use_kub, node_net):
     nodenet1_res = run_cmd(f'curl -s http://{address}:{nodenet1_rpc}/status')
     print(f'nodenet0_res: {nodenet0_res}')
     print(f'nodenet1_res: {nodenet1_res}')
-    return {
+    yield {
         'address': address,
         'nodenet0_rpc': nodenet0_rpc,
         'nodenet1_rpc': nodenet1_rpc
@@ -671,6 +671,50 @@ def ndau(ndau_node_and_tool):
 
 
 @pytest.fixture
+def chaos_no_error(chaos_node_and_tool):
+    """
+    Fixture providing a chaos function.
+
+    This function calls the chaos command in a configured environment.
+    """
+    def rf(cmd, **kwargs):
+        try:
+            return subp(
+                f'{chaos_node_and_tool["tool"]["bin"]} {cmd}',
+                env=chaos_node_and_tool["env"],
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+        except subprocess.CalledProcessError as e:
+            # Don't raise.  Callers use this to process the error message.
+            return e.stdout.rstrip('\n')
+
+    return rf
+
+
+@pytest.fixture
+def ndau_no_error(ndau_node_and_tool):
+    """
+    Fixture providing a ndau function.
+
+    This function calls the ndau command in a configured environment.
+    """
+    def rf(cmd, **kwargs):
+        try:
+            return subp(
+                f'{ndau_node_and_tool["tool"]["bin"]} {cmd}',
+                env=ndau_node_and_tool["env"],
+                stderr=subprocess.STDOUT,
+                **kwargs,
+            )
+        except subprocess.CalledProcessError as e:
+            # Don't raise.  Callers use this to process the error message.
+            return e.stdout.rstrip('\n')
+
+    return rf
+
+
+@pytest.fixture
 def chaos_namespace_query(chaos_node_and_tool):
     """
     Similar to chaos('dump <ns>') that allows for a non-zero return value.
@@ -710,31 +754,41 @@ def ndau_account_query(ndau_node_and_tool):
     return rf
 
 
-@pytest.fixture
-def set_rfe_address(use_kub, ndau):
+@pytest.fixture(autouse=True)
+def set_addresses_in_toml(use_kub, ndau):
     # When running on localnet, the rfe address is already present in the config.
-    # We don't know what its address is, but our tests don't care.
     if not use_kub:
         return
 
     conf_path = ndau('conf-path')
 
-    # If the rfe entry is there already, we're done.
+    # If the entries are there already, we're done.
     f = open(conf_path, 'r')
     conf_lines = f.readlines()
     f.close()
-    if any(src.util.constants.RFE_ADDRESS in line for line in conf_lines):
+    if any(src.util.constants.RFE_ADDRESS in line for line in conf_lines) and \
+       any(src.util.constants.NNR_ADDRESS in line for line in conf_lines) and \
+       any(src.util.constants.CVC_ADDRESS in line for line in conf_lines):
         return
 
-    # write RFE address and keys into ndautool.toml file
+    # Write addresses and keys into ndautool.toml file.
     f = open(conf_path, 'a')
     f.write('[rfe]\n')
     f.write(f'  address = "{src.util.constants.RFE_ADDRESS}"\n')
     f.write(f'  keys = ["{src.util.constants.RFE_KEY}"]\n')
+    f.write('\n')
+    f.write('[nnr]\n')
+    f.write(f'  address = "{src.util.constants.NNR_ADDRESS}"\n')
+    f.write(f'  keys = ["{src.util.constants.NNR_KEY}"]\n')
+    f.write('[cvc]\n')
+    f.write(f'  address = "{src.util.constants.CVC_ADDRESS}"\n')
+    f.write(f'  keys = ["{src.util.constants.CVC_KEY}"]\n')
     f.close()
 
-    # make sure RFE address exists in ndautool.toml file
+    # Make sure the addresses exist in ndautool.toml file.
     f = open(conf_path, 'r')
     conf_lines = f.readlines()
     f.close()
     assert any(src.util.constants.RFE_ADDRESS in line for line in conf_lines)
+    assert any(src.util.constants.NNR_ADDRESS in line for line in conf_lines)
+    assert any(src.util.constants.CVC_ADDRESS in line for line in conf_lines)
