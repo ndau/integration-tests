@@ -87,7 +87,7 @@ def test_transfer_lock(ndau):
     assert account_data2['lock']['unlocksOn'] == None
 
 
-def test_transfer_lock_notify(ndau):
+def test_lock_notify(ndau):
     """Test Lock and Notify transactions"""
 
     # Set up account to lock.
@@ -106,3 +106,21 @@ def test_transfer_lock_notify(ndau):
     account_data = json.loads(ndau(f'account query {account}'))
     assert account_data['lock'] != None
     assert account_data['lock']['unlocksOn'] != None
+
+
+def test_change_settlement_period(ndau):
+    """Test ChangeSettlementPeriod transaction"""
+
+    # Set up an account.
+    account = src.util.helpers.random_string()
+    src.util.helpers.set_up_account(ndau, account)
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['settlementSettings'] != None
+    assert account_data['settlementSettings']['Period'] == 't0s'
+
+    # ChangeSettlementPeriod
+    period_months = 3
+    ndau(f'account change-settlement-period {account} {period_months}m')
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['settlementSettings'] != None
+    assert account_data['settlementSettings']['Period'] == 't3m'
