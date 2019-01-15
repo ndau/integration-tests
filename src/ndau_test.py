@@ -1,11 +1,11 @@
 """Tests that single validator nodes operate as expected."""
+
+import base64
 import json
-
 import pytest
-import pdb
-
-from src.util.subp import subp
 import src.util.helpers
+from src.util.subp import subp
+from time import sleep
 
 
 def test_get_ndau_status(node_net, ndau):
@@ -159,3 +159,34 @@ def test_change_validation(ndau):
     ndau(f'account validation {account} set-script oAAgiA')
     account_data = json.loads(ndau(f'account query {account}'))
     assert account_data['validationScript'] == 'oAAgiA=='
+
+
+def test_command_validator_change(ndau):
+    """Test CommandValidatorChange transaction"""
+
+    # Get info about the validator we want to change.
+    info = json.loads(ndau('info'))
+    assert info['validator_info'] != None
+    assert info['validator_info']['pub_key'] != None
+
+    assert len(info['validator_info']['pub_key']) > 0
+    pubkey_bytes = bytes(info['validator_info']['pub_key'])
+
+    assert info['validator_info']['voting_power'] != None
+    power = info['validator_info']['voting_power']
+
+    # Get non-padded base64 encoding.
+    pubkey = base64.b64encode(pubkey_bytes).decode('utf-8').rstrip('=')
+
+    # Cycle over a power range of 5, starting at the default power of 10.
+    power = 10 + (power + 6) % 5
+
+    # CVC
+    ndau(f'cvc {pubkey} {power}')
+
+    # Give the change some time to propagate before asserting on the outcome.
+    sleep(2)
+
+    info = json.loads(ndau('info'))
+    assert info['validator_info'] != None
+    assert info['validator_info']['voting_power'] == power
