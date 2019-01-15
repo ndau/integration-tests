@@ -124,3 +124,38 @@ def test_change_settlement_period(ndau):
     account_data = json.loads(ndau(f'account query {account}'))
     assert account_data['settlementSettings'] != None
     assert account_data['settlementSettings']['Period'] == 't3m'
+
+
+def test_change_validation(ndau):
+    """Test ChangeValidation transaction"""
+
+    # Set up an account.
+    account = src.util.helpers.random_string()
+    src.util.helpers.set_up_account(ndau, account)
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['validationKeys'] != None
+    assert len(account_data['validationKeys']) == 1
+    key1 = account_data['validationKeys'][0]
+    assert account_data['validationScript'] == None
+
+    # Add
+    ndau(f'account validation {account} add')
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['validationKeys'] != None
+    assert len(account_data['validationKeys']) == 2
+    assert account_data['validationKeys'][0] == key1
+    assert account_data['validationKeys'][1] != key1
+    assert account_data['validationScript'] == None
+
+    # Reset
+    ndau(f'account validation {account} reset')
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['validationKeys'] != None
+    assert len(account_data['validationKeys']) == 1
+    assert account_data['validationKeys'][0] != key1
+    assert account_data['validationScript'] == None
+
+    # SetScript
+    ndau(f'account validation {account} set-script oAAgiA')
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['validationScript'] == 'oAAgiA=='
