@@ -173,20 +173,26 @@ def test_command_validator_change(ndau):
     pubkey_bytes = bytes(info['validator_info']['pub_key'])
 
     assert info['validator_info']['voting_power'] != None
-    power = info['validator_info']['voting_power']
+    old_power = info['validator_info']['voting_power']
 
     # Get non-padded base64 encoding.
     pubkey = base64.b64encode(pubkey_bytes).decode('utf-8').rstrip('=')
 
     # Cycle over a power range of 5, starting at the default power of 10.
-    power = 10 + (power + 6) % 5
+    new_power = 10 + (old_power + 6) % 5
 
     # CVC
-    ndau(f'cvc {pubkey} {power}')
+    ndau(f'cvc {pubkey} {new_power}')
 
-    # Give the change some time to propagate before asserting on the outcome.
-    sleep(2)
-
-    info = json.loads(ndau('info'))
-    assert info['validator_info'] != None
-    assert info['validator_info']['voting_power'] == power
+    # Wait up to 10 seconds for the change in power to propagate.
+    new_voting_power_was_set = False
+    for i in range(10):
+        sleep(1)
+        info = json.loads(ndau('info'))
+        assert info['validator_info'] != None
+        voting_power = info['validator_info']['voting_power']
+        if voting_power == new_power:
+            new_voting_power_was_set = True
+            break
+        assert voting_power == old_power
+    assert new_voting_power_was_set
