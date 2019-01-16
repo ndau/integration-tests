@@ -754,6 +754,24 @@ def ndau_account_query(ndau_node_and_tool):
     return rf
 
 
+@pytest.fixture
+def set_pre_genesis_tx_fees(chaos):
+    """Set up zero transaction fees for pre-genesis tests."""
+    sys_ns = src.util.constants.SYSTEM_NAMESPACE
+    key = 'TransactionFeeScript'
+    zero_fee_script = 'oAAgiA=='
+    chaos(f'set {sys_ns} -k {key} -v {zero_fee_script}')
+
+
+@pytest.fixture
+def set_post_genesis_tx_fees(chaos):
+    """Set up non-zero transaction fees for post-genesis tests."""
+    sys_ns = src.util.constants.SYSTEM_NAMESPACE
+    key = 'TransactionFeeScript'
+    one_napu_fee_script = 'oAAaiA=='
+    chaos(f'set {sys_ns} -k {key} -v {one_napu_fee_script}')
+
+
 @pytest.fixture(autouse=True)
 def set_addresses_in_toml(use_kub, ndau):
     # When running on localnet, the rfe address is already present in the config.

@@ -15,7 +15,7 @@ def test_get_ndau_status(node_net, ndau):
     assert moniker == f'{node_net}-0'
 
 
-def test_create_account_pre_genesis(ndau):
+def test_create_account(ndau, set_post_genesis_tx_fees):
     """Create account, RFE to it, and check attributes"""
     _random_string = src.util.helpers.random_string()
     known_ids = ndau('account list').splitlines()
@@ -40,8 +40,8 @@ def test_create_account_pre_genesis(ndau):
     ndau(f'account claim {_random_string}')
     account_data = json.loads(ndau(f'account query {_random_string}'))
     assert account_data['validationKeys'] != None
-    # check that 0 napu tx fee was deducted from account, there are no tx fees pre-genesis
-    expected_balance = 1000000000
+    # check that 1 napu tx fee was deducted from account
+    expected_balance = 999999999
     assert account_data['balance'] == expected_balance
 
 
