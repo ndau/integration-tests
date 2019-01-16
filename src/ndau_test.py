@@ -1,11 +1,11 @@
 """Tests that single validator nodes operate as expected."""
+
+import base64
 import json
-
 import pytest
-import pdb
-
-from src.util.subp import subp
 import src.util.helpers
+from src.util.subp import subp
+from time import sleep
 
 
 def test_get_ndau_status(node_net, ndau):
@@ -87,7 +87,7 @@ def test_transfer_lock(ndau):
     assert account_data2['lock']['unlocksOn'] == None
 
 
-def test_transfer_lock_notify(ndau):
+def test_lock_notify(ndau):
     """Test Lock and Notify transactions"""
 
     # Set up account to lock.
@@ -106,3 +106,93 @@ def test_transfer_lock_notify(ndau):
     account_data = json.loads(ndau(f'account query {account}'))
     assert account_data['lock'] != None
     assert account_data['lock']['unlocksOn'] != None
+
+
+def test_change_settlement_period(ndau):
+    """Test ChangeSettlementPeriod transaction"""
+
+    # Set up an account.
+    account = src.util.helpers.random_string()
+    src.util.helpers.set_up_account(ndau, account)
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['settlementSettings'] != None
+    assert account_data['settlementSettings']['Period'] == 't0s'
+
+    # ChangeSettlementPeriod
+    period_months = 3
+    ndau(f'account change-settlement-period {account} {period_months}m')
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['settlementSettings'] != None
+    assert account_data['settlementSettings']['Period'] == 't3m'
+
+
+def test_change_validation(ndau):
+    """Test ChangeValidation transaction"""
+
+    # Set up an account.
+    account = src.util.helpers.random_string()
+    src.util.helpers.set_up_account(ndau, account)
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['validationKeys'] != None
+    assert len(account_data['validationKeys']) == 1
+    key1 = account_data['validationKeys'][0]
+    assert account_data['validationScript'] == None
+
+    # Add
+    ndau(f'account validation {account} add')
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['validationKeys'] != None
+    assert len(account_data['validationKeys']) == 2
+    assert account_data['validationKeys'][0] == key1
+    assert account_data['validationKeys'][1] != key1
+    assert account_data['validationScript'] == None
+
+    # Reset
+    ndau(f'account validation {account} reset')
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['validationKeys'] != None
+    assert len(account_data['validationKeys']) == 1
+    assert account_data['validationKeys'][0] != key1
+    assert account_data['validationScript'] == None
+
+    # SetScript
+    ndau(f'account validation {account} set-script oAAgiA')
+    account_data = json.loads(ndau(f'account query {account}'))
+    assert account_data['validationScript'] == 'oAAgiA=='
+
+
+def test_command_validator_change(ndau):
+    """Test CommandValidatorChange transaction"""
+
+    # Get info about the validator we want to change.
+    info = json.loads(ndau('info'))
+    assert info['validator_info'] != None
+    assert info['validator_info']['pub_key'] != None
+
+    assert len(info['validator_info']['pub_key']) > 0
+    pubkey_bytes = bytes(info['validator_info']['pub_key'])
+
+    assert info['validator_info']['voting_power'] != None
+    old_power = info['validator_info']['voting_power']
+
+    # Get non-padded base64 encoding.
+    pubkey = base64.b64encode(pubkey_bytes).decode('utf-8').rstrip('=')
+
+    # Cycle over a power range of 5, starting at the default power of 10.
+    new_power = 10 + (old_power + 6) % 5
+
+    # CVC
+    ndau(f'cvc {pubkey} {new_power}')
+
+    # Wait up to 10 seconds for the change in power to propagate.
+    new_voting_power_was_set = False
+    for i in range(10):
+        sleep(1)
+        info = json.loads(ndau('info'))
+        assert info['validator_info'] != None
+        voting_power = info['validator_info']['voting_power']
+        if voting_power == new_power:
+            new_voting_power_was_set = True
+            break
+        assert voting_power == old_power
+    assert new_voting_power_was_set
