@@ -756,14 +756,18 @@ def ndau_account_query(ndau_node_and_tool):
 
 
 @pytest.fixture
-def rfe(ndau, ensure_genesis):
+def rfe(ndau, ensure_post_genesis_tx_fees):
     """
     Wrapper for ndau(f'rfe {amount} {account}') that ensures the RFE account has ndau to spend on
     the RFE tx fee.  All integration tests wanting to RFE funds to accounts should use this rfe()
     instead of ndau('rfe').
     """
     def rf(amount, account, **kwargs):
-        ensure_genesis()
+        # We want to make the tests work harder if we can.  Make sure there are tx fees in place.
+        # This also ensures that we've performed genesis which gives the RFE account ndau with
+        # which to pay for RFE tx fees.
+        ensure_post_genesis_tx_fees()
+
         ndau(f'rfe {amount} {account}')
     return rf
 
