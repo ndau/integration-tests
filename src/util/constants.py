@@ -9,9 +9,15 @@ LOCALNET0_NDAU_RPC  = 26671
 LOCALNET1_CHAOS_RPC = 26672
 LOCALNET1_NDAU_RPC  = 26673
 
+# The identity that the chaos tool uses to map to the system namespace for gets and sets.
+SYSVAR_IDENTITY = 'sysvar'
+
+# Base64-encoded transaction fee scripts, for use with TransactionFeeScript system variable.
+ZERO_FEE_SCRIPT     = 'oAAgiA=='
+ONE_NAPU_FEE_SCRIPT = 'oAAaiA=='
+
 # These must match the genesis files.  All networks use (nearly) the same genesis files.
 # Some of these we could conceivably get using ndau/chaos tool commands, but some are not exposed.
-SYSTEM_NAMESPACE = 'OHCPYCsIi3VtEKrLsrqGdcglqlvNci3bbrYVr/09sWc='
 RFE_ADDRESS = 'ndmfgnz9qby6nyi35aadjt9nasjqxqyd4vrswucwfmceqs3y'
 RFE_KEY = 'npvtayjadtcbictc27a55zyz66yb53ygn4cc9qgxm3m2x3wmnhfyrwkwipwupxeijsmazxir586bfpeuqncud6z72veb3zn5kd62myri589uit6ta4kas5def9ii'
 NNR_ADDRESS = 'ndnf9ffbzhyf8mk7z5vvqc4quzz5i2exp5zgsmhyhc9cuwr4'

@@ -10,12 +10,13 @@ def random_string(len=16):
     return ''.join(choices(ascii_lowercase+digits, k=len))
 
 
-def set_up_account(ndau, account):
+def set_up_account(ndau, rfe, account):
     """
     Helper function for creating a new account, rfe'ing to it, claiming it.
     """
+    ensure_rfe_account_has_ndau(ndau, ndau_node_exists)
     ndau(f'account new {account}')
-    ndau(f'rfe 10 {account}')
+    rfe(10, account)
     ndau(f'account claim {account}')
 
 

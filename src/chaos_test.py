@@ -53,18 +53,18 @@ def test_get_chaos_status(node_net, chaos):
     assert moniker == f'{node_net}-0'
 
 
-def test_create_id(chaos, ndau):
+def test_create_id(chaos, ndau, rfe):
     """First line is always a header."""
     _random_string = src.util.helpers.random_string()
     known_ids = chaos('id list').splitlines()[1:]
     assert not any(_random_string in id_line for id_line in known_ids)
-    src.util.helpers.set_up_account(ndau, _random_string)
+    src.util.helpers.set_up_account(ndau, rfe, _random_string)
     src.util.helpers.set_up_namespace(chaos, _random_string)
     new_ids = chaos('id list').splitlines()[1:]
     assert any(_random_string in id_line for id_line in new_ids)
 
 
-def test_set_get(chaos, ndau):
+def test_set_get(chaos, ndau, rfe):
     """`chaostool` can set a value and get it back later."""
     _random_string = src.util.helpers.random_string()
     conf_path = ndau('conf-path')
@@ -72,7 +72,7 @@ def test_set_get(chaos, ndau):
     conf_lines = f.readlines()
     f.close()
     print(conf_lines)
-    src.util.helpers.set_up_account(ndau, _random_string)
+    src.util.helpers.set_up_account(ndau, rfe, _random_string)
     src.util.helpers.set_up_namespace(chaos, _random_string)
     chaos(f'set {_random_string} -k key -v value')
     v = chaos(f'get {_random_string} -k key -s')
@@ -80,10 +80,10 @@ def test_set_get(chaos, ndau):
 
 
 # @pytest.mark.slow
-def test_set_delay_get(chaos, ndau):
+def test_set_delay_get(chaos, ndau, rfe):
     """Getting a value doesn't depend on it remaining in memory."""
     _random_string = src.util.helpers.random_string()
-    src.util.helpers.set_up_account(ndau, _random_string)
+    src.util.helpers.set_up_account(ndau, rfe, _random_string)
     src.util.helpers.set_up_namespace(chaos, _random_string)
     chaos(f'set {_random_string} -k key -v value')
     sleep(2)
@@ -91,10 +91,10 @@ def test_set_delay_get(chaos, ndau):
     assert v == 'value'
 
 
-def test_remove(chaos, ndau):
+def test_remove(chaos, ndau, rfe):
     """`chaostool` can remove a value."""
     _random_string = src.util.helpers.random_string()
-    src.util.helpers.set_up_account(ndau, _random_string)
+    src.util.helpers.set_up_account(ndau, rfe, _random_string)
     src.util.helpers.set_up_namespace(chaos, _random_string)
     chaos(f'set {_random_string} -k key -v value')
     chaos(f"set {_random_string} -k key -v ''")
@@ -102,14 +102,14 @@ def test_remove(chaos, ndau):
     assert v == ''
 
 
-def test_get_ns(chaos, ndau, chaos_namespace_query, ndau_account_query):
+def test_get_ns(chaos, ndau, rfe, chaos_namespace_query, ndau_account_query):
     """`chaostool` can list all namespaces."""
     # set up some namespaces with some data in each
     num_ns = len(chaos('get-ns').splitlines())
     nss = ('one', 'two', 'three')
     for ns in nss:
         if ndau_account_query(ns) == 'No such named account':
-            src.util.helpers.set_up_account(ndau, ns)
+            src.util.helpers.set_up_account(ndau, rfe, ns)
         if chaos_namespace_query(ns) == f'getting namespace: no such identity: {ns}':
             src.util.helpers.set_up_namespace(chaos, ns)
         else:
@@ -124,13 +124,13 @@ def test_get_ns(chaos, ndau, chaos_namespace_query, ndau_account_query):
     assert len(namespaces) == num_ns + len(nss)
 
 
-def test_dump(chaos, ndau, chaos_namespace_query, ndau_account_query):
+def test_dump(chaos, ndau, rfe, chaos_namespace_query, ndau_account_query):
     """`chaostool` can dump all k-v pairs from a given namespace."""
     # set up a second namespace to ensure we filter out others
     nss = ('one', 'two')
     for ns in nss:
         if ndau_account_query(ns) == 'No such named account':
-            src.util.helpers.set_up_account(ndau, ns)
+            src.util.helpers.set_up_account(ndau, rfe, ns)
         if chaos_namespace_query(ns) == f'getting namespace: no such identity: {ns}':
             src.util.helpers.set_up_namespace(chaos, ns)
         chaos(f'set {ns} -k key -v "value {ns}"')
@@ -148,10 +148,10 @@ def test_dump(chaos, ndau, chaos_namespace_query, ndau_account_query):
     assert expected_lines == found_lines
 
 
-def test_can_retrieve_values_using_namespace(chaos, ndau):
+def test_can_retrieve_values_using_namespace(chaos, ndau, rfe):
     """Values can be retrieved given only the namespace and key."""
     temp = src.util.helpers.random_string()
-    src.util.helpers.set_up_account(ndau, temp)
+    src.util.helpers.set_up_account(ndau, rfe, temp)
     namespace_b64 = src.util.helpers.set_up_namespace(chaos, temp)
     chaos(f'set {temp} -k "this key is durable" -v "really"')
 
@@ -159,12 +159,12 @@ def test_can_retrieve_values_using_namespace(chaos, ndau):
     assert val == "really"
 
 
-def test_cannot_overwrite_others_namespace(chaos, ndau, chaos_namespace_query, ndau_account_query):
+def test_cannot_overwrite_others_namespace(chaos, ndau, rfe, chaos_namespace_query, ndau_account_query):
     """Users cannot overwrite each others' values."""
     nss = ('one', 'two')
     for ns in nss:
         if ndau_account_query(ns) == 'No such named account':
-            src.util.helpers.set_up_account(ndau, ns)
+            src.util.helpers.set_up_account(ndau, rfe, ns)
         if chaos_namespace_query(ns) == f'getting namespace: no such identity: {ns}':
             src.util.helpers.set_up_namespace(chaos, ns)
         chaos(f'set {ns} -k key -v "value {ns}"')
@@ -174,10 +174,10 @@ def test_cannot_overwrite_others_namespace(chaos, ndau, chaos_namespace_query, n
 
 
 # @pytest.mark.slow
-def test_get_history(chaos, ndau):
+def test_get_history(chaos, ndau, rfe):
     """`chaostool` can list the history of a value."""
     historic = src.util.helpers.random_string()
-    src.util.helpers.set_up_account(ndau, historic)
+    src.util.helpers.set_up_account(ndau, rfe, historic)
     src.util.helpers.set_up_namespace(chaos, historic)
     for i in range(5):
         chaos(f'set {historic} -k counter -v {i}')

@@ -15,7 +15,7 @@ def test_get_ndau_status(node_net, ndau):
     assert moniker == f'{node_net}-0'
 
 
-def test_create_account(ndau, set_post_genesis_tx_fees):
+def test_create_account(ndau, rfe, set_post_genesis_tx_fees):
     """Create account, RFE to it, and check attributes"""
     _random_string = src.util.helpers.random_string()
     known_ids = ndau('account list').splitlines()
@@ -32,7 +32,7 @@ def test_create_account(ndau, set_post_genesis_tx_fees):
     account_data = json.loads(ndau(f'account query {_random_string}'))
     assert account_data['validationKeys'] == None
     # RFE to account 10 ndau
-    ndau(f'rfe 10 {_random_string}')
+    rfe(10, _random_string)
     account_data = json.loads(ndau(f'account query {_random_string}'))
     # check that account balance is 10 ndau
     assert account_data['balance'] == 1000000000
@@ -45,31 +45,31 @@ def test_create_account(ndau, set_post_genesis_tx_fees):
     assert account_data['balance'] == expected_balance
 
 
-def test_transfer(ndau):
+def test_transfer(ndau, rfe, set_post_genesis_tx_fees):
     """Test Transfer transaction"""
 
     # Set up accounts to transfer between.
     account1 = src.util.helpers.random_string()
-    src.util.helpers.set_up_account(ndau, account1)
+    src.util.helpers.set_up_account(ndau, rfe, account1)
     account2 = src.util.helpers.random_string()
-    src.util.helpers.set_up_account(ndau, account2)
+    src.util.helpers.set_up_account(ndau, rfe, account2)
 
     # Transfer
     ndau(f'transfer 1 {account1} {account2}')
     account_data1 = json.loads(ndau(f'account query {account1}'))
     account_data2 = json.loads(ndau(f'account query {account2}'))
-    assert account_data1['balance'] == 900000000
+    assert account_data1['balance'] == 899999999 # 1 napu tx fee taken out
     assert account_data1['lock'] == None
     assert account_data2['balance'] == 1100000000
     assert account_data2['lock'] == None
 
 
-def test_transfer_lock(ndau):
+def test_transfer_lock(ndau, rfe, set_post_genesis_tx_fees):
     """Test TransferLock transaction"""
 
     # Set up source claimed account with funds.
     account1 = src.util.helpers.random_string()
-    src.util.helpers.set_up_account(ndau, account1)
+    src.util.helpers.set_up_account(ndau, rfe, account1)
 
     # Create destination account, but don't claim or rfe to it (otherwise transfer-lock fails).
     account2 = src.util.helpers.random_string()
@@ -80,19 +80,19 @@ def test_transfer_lock(ndau):
     ndau(f'transfer-lock 1 {account1} {account2} {lock_months}m')
     account_data1 = json.loads(ndau(f'account query {account1}'))
     account_data2 = json.loads(ndau(f'account query {account2}'))
-    assert account_data1['balance'] == 900000000
+    assert account_data1['balance'] == 899999999 # 1 napu tx fee taken out
     assert account_data1['lock'] == None
     assert account_data2['balance'] == 100000000
     assert account_data2['lock'] != None
     assert account_data2['lock']['unlocksOn'] == None
 
 
-def test_lock_notify(ndau):
+def test_lock_notify(ndau, rfe):
     """Test Lock and Notify transactions"""
 
     # Set up account to lock.
     account = src.util.helpers.random_string()
-    src.util.helpers.set_up_account(ndau, account)
+    src.util.helpers.set_up_account(ndau, rfe, account)
 
     # Lock
     lock_months = 3
@@ -108,12 +108,12 @@ def test_lock_notify(ndau):
     assert account_data['lock']['unlocksOn'] != None
 
 
-def test_change_settlement_period(ndau):
+def test_change_settlement_period(ndau, rfe):
     """Test ChangeSettlementPeriod transaction"""
 
     # Set up an account.
     account = src.util.helpers.random_string()
-    src.util.helpers.set_up_account(ndau, account)
+    src.util.helpers.set_up_account(ndau, rfe, account)
     account_data = json.loads(ndau(f'account query {account}'))
     assert account_data['settlementSettings'] != None
     assert account_data['settlementSettings']['Period'] == 't0s'
@@ -126,12 +126,12 @@ def test_change_settlement_period(ndau):
     assert account_data['settlementSettings']['Period'] == 't3m'
 
 
-def test_change_validation(ndau):
+def test_change_validation(ndau, rfe):
     """Test ChangeValidation transaction"""
 
     # Set up an account.
     account = src.util.helpers.random_string()
-    src.util.helpers.set_up_account(ndau, account)
+    src.util.helpers.set_up_account(ndau, rfe, account)
     account_data = json.loads(ndau(f'account query {account}'))
     assert account_data['validationKeys'] != None
     assert len(account_data['validationKeys']) == 1
