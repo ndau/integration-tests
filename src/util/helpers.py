@@ -5,6 +5,9 @@ Helper functions for common tasks that don't need to be pytest fixures.
 from random import choices
 from string import ascii_lowercase, digits
 
+import src.util.constants
+import src.util.helpers
+
 
 def random_string(len=16):
     return ''.join(choices(ascii_lowercase+digits, k=len))
@@ -14,7 +17,6 @@ def set_up_account(ndau, rfe, account):
     """
     Helper function for creating a new account, rfe'ing to it, claiming it.
     """
-    ensure_rfe_account_has_ndau(ndau, ndau_node_exists)
     ndau(f'account new {account}')
     rfe(10, account)
     ndau(f'account claim {account}')
