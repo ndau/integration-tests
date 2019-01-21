@@ -778,7 +778,7 @@ def ensure_pre_genesis_tx_fees(chaos):
     def rf(**kwargs):
         sys_id = src.util.constants.SYSVAR_IDENTITY
         key = 'TransactionFeeScript'
-        current_script = chaos(f'get {sys_id} -k {key}')
+        current_script = chaos(f'get {sys_id} {key}')
         # If the tx fees are already zero, there is nothing to do.
         if current_script != src.util.constants.ZERO_FEE_SCRIPT:
             # Calling ensure_genesis() would cause a recursive fixture dependency.
@@ -789,7 +789,7 @@ def ensure_pre_genesis_tx_fees(chaos):
             # way it wouldn't is if we're testing against a blockchain that had its fees changed
             # outside of our integration test suite.
             return # FIXME: Remove once we can get/set sysvars
-            chaos(f'set {sys_id} -k {key} -v {src.util.constants.ZERO_FEE_SCRIPT} -m')
+            chaos(f'set {sys_id} {key} -v {src.util.constants.ZERO_FEE_SCRIPT} -m')
     return rf
 
 
@@ -802,13 +802,13 @@ def ensure_post_genesis_tx_fees(chaos, ensure_genesis):
     def rf(**kwargs):
         sys_id = src.util.constants.SYSVAR_IDENTITY
         key = 'TransactionFeeScript'
-        current_script = chaos(f'get {sys_id} -k {key}')
+        current_script = chaos(f'get {sys_id} {key}')
         # If the tx fees are aready set to one-napu per transaction, there is nothing to do.
         if current_script != src.util.constants.ONE_NAPU_FEE_SCRIPT:
             # Make sure we've performed genesis so that the BPC account can pay the sysvar tx fee.
             ensure_genesis()
             return # FIXME: Remove once we can get/set sysvars
-            chaos(f'set {sys_id} -k {key} -v {src.util.constants.ONE_NAPU_FEE_SCRIPT} -m')
+            chaos(f'set {sys_id} {key} -v {src.util.constants.ONE_NAPU_FEE_SCRIPT} -m')
     return rf
 
 
@@ -906,19 +906,22 @@ def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_gen
         # Delegate purchaser account to node account.
         ndau(f'account delegate {purchaser_account} {node_account}')
 
+        # Get the EAI fee table from chaos.
+        eai_fee_table = json.loads(chaos(f'get sysvar EAIFeeTable -m'))
+
         # Build up an array of accounts with EAI fee percents associated with each.
         accounts = []
         scale = 1e8 # The EAIFeeTable uses percentages in units of napu.
         percent = scale # Start out at 100%, we'll dish out pieces of this over multiple accounts.
-        for entry in src.util.constants.EAI_FEE_TABLE:
-            pair = entry.split(':')
-            pct = float(pair[0])
-            acct = pair[1]
-            if len(acct) == 0:
+        for entry in eai_fee_table:
+            pct = float(entry['Fee'])
+            acct = entry['To']
+            if acct == None:
                 acct = node_account
                 flag = '' # node_account is an account name, no flag when querying account data.
                 node_account_percent = pct / scale
             else:
+                acct = acct[0]
                 flag = '-a' # acct is an address, must use the -a flag when querying account data.
             account_data = json.loads(ndau(f'account query {flag} {acct}'))
             accounts.append(Account(acct, flag, pct / scale, account_data['balance']))
