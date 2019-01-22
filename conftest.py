@@ -773,12 +773,32 @@ def rfe(ndau, ensure_post_genesis_tx_fees):
 
 
 @pytest.fixture
-def ensure_pre_genesis_tx_fees(chaos):
+def update_ndau_sysvar_cache(ndau):
+    """Nudge the ndau chain to update its cache of sysvars.  Any transaction will do."""
+    def rf(**kwargs):
+        account = src.util.helpers.random_string()
+        ndau(f'account new {account}')
+        ndau(f'account claim {account}')
+
+        # Wait up to 10 seconds for a block to be created.
+        new_block_was_created = False
+        for i in range(10):
+            time.sleep(1)
+            account_data = json.loads(ndau(f'account query {account}'))
+            if account_data['validationKeys'] != None:
+                new_block_was_created = True
+                break
+        assert new_block_was_created
+    return rf
+
+
+@pytest.fixture
+def ensure_pre_genesis_tx_fees(chaos, update_ndau_sysvar_cache):
     """Ensure we have set up zero transaction fees for pre-genesis tests."""
     def rf(**kwargs):
         sys_id = src.util.constants.SYSVAR_IDENTITY
-        key = 'TransactionFeeScript'
-        current_script = chaos(f'get {sys_id} {key}')
+        key = src.util.constants.TRANSACTION_FEE_SCRIPT_KEY
+        current_script = chaos(f'get {sys_id} {key} -m')
         # If the tx fees are already zero, there is nothing to do.
         if current_script != src.util.constants.ZERO_FEE_SCRIPT:
             # Calling ensure_genesis() would cause a recursive fixture dependency.
@@ -788,27 +808,44 @@ def ensure_pre_genesis_tx_fees(chaos):
             # funded when we performed genesis before we changed the fees to non-zero.  The only
             # way it wouldn't is if we're testing against a blockchain that had its fees changed
             # outside of our integration test suite.
-            return # FIXME: Remove once we can get/set sysvars
-            chaos(f'set {sys_id} {key} -v {src.util.constants.ZERO_FEE_SCRIPT} -m')
+            new_script = src.util.constants.ZERO_FEE_SCRIPT
+            value = new_script.replace('"', '\\"')
+            chaos(f'set {sys_id} {key} --value-json {value}')
+
+            # Check that it worked.
+            current_script = chaos(f'get {sys_id} {key} -m')
+            assert current_script == new_script
+
+            # Activate the new tx fees.
+            update_ndau_sysvar_cache()
     return rf
 
 
 @pytest.fixture
-def ensure_post_genesis_tx_fees(chaos, ensure_genesis):
+def ensure_post_genesis_tx_fees(chaos, update_ndau_sysvar_cache, ensure_genesis):
     """
     Ensure we have set up non-zero transaction fees for post-genesis tests.
     Returns True if we changed the tx fees.
     """
     def rf(**kwargs):
         sys_id = src.util.constants.SYSVAR_IDENTITY
-        key = 'TransactionFeeScript'
-        current_script = chaos(f'get {sys_id} {key}')
+        key = src.util.constants.TRANSACTION_FEE_SCRIPT_KEY
+        current_script = chaos(f'get {sys_id} {key} -m')
         # If the tx fees are aready set to one-napu per transaction, there is nothing to do.
         if current_script != src.util.constants.ONE_NAPU_FEE_SCRIPT:
             # Make sure we've performed genesis so that the BPC account can pay the sysvar tx fee.
             ensure_genesis()
-            return # FIXME: Remove once we can get/set sysvars
-            chaos(f'set {sys_id} {key} -v {src.util.constants.ONE_NAPU_FEE_SCRIPT} -m')
+
+            new_script = src.util.constants.ONE_NAPU_FEE_SCRIPT
+            value = new_script.replace('"', '\\"')
+            chaos(f'set {sys_id} {key} --value-json {value}')
+
+            # Check that it worked.
+            current_script = chaos(f'get {sys_id} {key} -m')
+            assert current_script == new_script
+
+            # Activate the new tx fees.
+            update_ndau_sysvar_cache()
     return rf
 
 
@@ -907,7 +944,7 @@ def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_gen
         ndau(f'account delegate {purchaser_account} {node_account}')
 
         # Get the EAI fee table from chaos.
-        eai_fee_table = json.loads(chaos(f'get sysvar EAIFeeTable -m'))
+        eai_fee_table = json.loads(chaos(f'get sysvar {src.util.constants.EAI_FEE_TABLE_KEY} -m'))
 
         # Build up an array of accounts with EAI fee percents associated with each.
         accounts = []

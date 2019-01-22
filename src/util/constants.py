@@ -12,10 +12,14 @@ LOCALNET1_NDAU_RPC  = 26673
 # The identity that the chaos tool uses to map to the system namespace for gets and sets.
 SYSVAR_IDENTITY = 'sysvar'
 
-# Base64-encoded transaction fee scripts, for use with TransactionFeeScript system variable.
-ZERO_FEE_SCRIPT     = 'oAAgiA=='
-ONE_NAPU_FEE_SCRIPT = 'oAAaiA=='
-ONE_NAPU_FEE        = 0 # FIXME: Set to 1 once we can get/set sysvars.
+# Sysvar keys.
+EAI_FEE_TABLE_KEY          = 'EAIFeeTable'
+TRANSACTION_FEE_SCRIPT_KEY = 'TransactionFeeScript'
+
+# For use when changing tx fees throughout the integration tests.
+ZERO_FEE_SCRIPT            = '"oAAgiA=="'
+ONE_NAPU_FEE_SCRIPT        = '"oAAaiA=="'
+ONE_NAPU_FEE               = 1
 
 # These must match the genesis files.  Localnet, devnet and testnet all use the same values.
 RFE_ADDRESS = 'ndmfgnz9qby6nyi35aadjt9nasjqxqyd4vrswucwfmceqs3y'
