@@ -879,7 +879,7 @@ def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_gen
         assert account_data['balance'] >= 1000000000
 
         # Set up a purchaser account.  We don't have to rfe to it to pay for 0-napu claim tx fee.
-        purchaser_account = src.util.helpers.random_string()
+        purchaser_account = src.util.helpers.random_string('genesis-purchaser')
         ndau(f'account new {purchaser_account}')
         ndau(f'account claim {purchaser_account}')
 
@@ -893,7 +893,7 @@ def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_gen
         ndau(f'account lock {purchaser_account} {lock_years}y')
 
         # Set up a node operator account with 1000 ndau needed to self-stake.
-        node_account = src.util.helpers.random_string()
+        node_account = src.util.helpers.random_string('genesis-node')
         ndau(f'account new {node_account}')
         # We can claim the accont before funding it since tx fees are zero.
         ndau(f'account claim {node_account}')
@@ -910,7 +910,7 @@ def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_gen
         ndau(f'account register-node {node_account} {rpc_address} {distribution_script}')
 
         # Set up a reward target account.  Claim tx fee is zero so we don't have to rfe to it.
-        reward_account = src.util.helpers.random_string()
+        reward_account = src.util.helpers.random_string('genesis-reward')
         ndau(f'account new {reward_account}')
         ndau(f'account claim {reward_account}')
         ndau(f'account set-rewards-target {node_account} {reward_account}')

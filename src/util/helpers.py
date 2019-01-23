@@ -6,8 +6,12 @@ from random import choices
 from string import ascii_lowercase, digits
 
 
-def random_string(len=16):
-    return ''.join(choices(ascii_lowercase+digits, k=len))
+def random_string(prefix='', length=16):
+    """The prefix is useful for debugging when using random account names."""
+    if len(prefix) > 0:
+        # Put a delimiter between the human-readable prefix and the random part.
+        prefix += '-'
+    return prefix + ''.join(choices(ascii_lowercase+digits, k=length))
 
 
 def set_up_account(ndau, rfe, account):

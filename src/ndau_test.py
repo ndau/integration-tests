@@ -23,7 +23,7 @@ def test_genesis(perform_genesis):
 
 def test_create_account(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
     """Create account, RFE to it, and check attributes"""
-    _random_string = src.util.helpers.random_string()
+    _random_string = src.util.helpers.random_string('generic')
     known_ids = ndau('account list').splitlines()
     # make sure account does not already exist
     assert not any(_random_string in id_line for id_line in known_ids)
@@ -61,9 +61,9 @@ def test_transfer(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
     ensure_post_genesis_tx_fees()
 
     # Set up accounts to transfer between.
-    account1 = src.util.helpers.random_string()
+    account1 = src.util.helpers.random_string('xfer1')
     src.util.helpers.set_up_account(ndau, rfe, account1)
-    account2 = src.util.helpers.random_string()
+    account2 = src.util.helpers.random_string('xfer2')
     src.util.helpers.set_up_account(ndau, rfe, account2)
 
     orig_ndau = 10 # from set_up_account()
@@ -94,11 +94,11 @@ def test_transfer_lock(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
     ensure_post_genesis_tx_fees()
 
     # Set up source claimed account with funds.
-    account1 = src.util.helpers.random_string()
+    account1 = src.util.helpers.random_string('xferlock1')
     src.util.helpers.set_up_account(ndau, rfe, account1)
 
     # Create destination account, but don't claim or rfe to it (otherwise transfer-lock fails).
-    account2 = src.util.helpers.random_string()
+    account2 = src.util.helpers.random_string('xferlock2')
     ndau(f'account new {account2}')
 
     orig_ndau = 10 # from set_up_account()
@@ -128,7 +128,7 @@ def test_lock_notify(ndau, rfe):
     """Test Lock and Notify transactions"""
 
     # Set up account to lock.
-    account = src.util.helpers.random_string()
+    account = src.util.helpers.random_string('lock-notify')
     src.util.helpers.set_up_account(ndau, rfe, account)
 
     # Lock
@@ -149,7 +149,7 @@ def test_change_settlement_period(ndau, rfe):
     """Test ChangeSettlementPeriod transaction"""
 
     # Set up an account.
-    account = src.util.helpers.random_string()
+    account = src.util.helpers.random_string('settlement-period')
     src.util.helpers.set_up_account(ndau, rfe, account)
     account_data = json.loads(ndau(f'account query {account}'))
     assert account_data['settlementSettings'] != None
@@ -167,7 +167,7 @@ def test_change_validation(ndau, rfe):
     """Test ChangeValidation transaction"""
 
     # Set up an account.
-    account = src.util.helpers.random_string()
+    account = src.util.helpers.random_string('change-validation')
     src.util.helpers.set_up_account(ndau, rfe, account)
     account_data = json.loads(ndau(f'account query {account}'))
     assert account_data['validationKeys'] != None
