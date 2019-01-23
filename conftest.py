@@ -773,27 +773,7 @@ def rfe(ndau, ensure_post_genesis_tx_fees):
 
 
 @pytest.fixture
-def update_ndau_sysvar_cache(ndau):
-    """Nudge the ndau chain to update its cache of sysvars.  Any transaction will do."""
-    def rf(**kwargs):
-        account = src.util.helpers.random_string()
-        ndau(f'account new {account}')
-        ndau(f'account claim {account}')
-
-        # Wait up to 10 seconds for a block to be created.
-        new_block_was_created = False
-        for i in range(10):
-            time.sleep(1)
-            account_data = json.loads(ndau(f'account query {account}'))
-            if account_data['validationKeys'] != None:
-                new_block_was_created = True
-                break
-        assert new_block_was_created
-    return rf
-
-
-@pytest.fixture
-def ensure_pre_genesis_tx_fees(chaos, update_ndau_sysvar_cache):
+def ensure_pre_genesis_tx_fees(chaos):
     """Ensure we have set up zero transaction fees for pre-genesis tests."""
     def rf(**kwargs):
         sys_id = src.util.constants.SYSVAR_IDENTITY
@@ -815,14 +795,11 @@ def ensure_pre_genesis_tx_fees(chaos, update_ndau_sysvar_cache):
             # Check that it worked.
             current_script = chaos(f'get {sys_id} {key} -m')
             assert current_script == new_script
-
-            # Activate the new tx fees.
-            update_ndau_sysvar_cache()
     return rf
 
 
 @pytest.fixture
-def ensure_post_genesis_tx_fees(chaos, update_ndau_sysvar_cache, ensure_genesis):
+def ensure_post_genesis_tx_fees(chaos, ensure_genesis):
     """
     Ensure we have set up non-zero transaction fees for post-genesis tests.
     Returns True if we changed the tx fees.
@@ -843,9 +820,6 @@ def ensure_post_genesis_tx_fees(chaos, update_ndau_sysvar_cache, ensure_genesis)
             # Check that it worked.
             current_script = chaos(f'get {sys_id} {key} -m')
             assert current_script == new_script
-
-            # Activate the new tx fees.
-            update_ndau_sysvar_cache()
     return rf
 
 
@@ -904,7 +878,7 @@ def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_gen
         # The RFE account may have already had some ndau, so check for minimum expected balance.
         assert account_data['balance'] >= 1000000000
 
-        # Set up a purchaser account.
+        # Set up a purchaser account.  We don't have to rfe to it to pay for 0-napu claim tx fee.
         purchaser_account = src.util.helpers.random_string()
         ndau(f'account new {purchaser_account}')
         ndau(f'account claim {purchaser_account}')
@@ -921,6 +895,7 @@ def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_gen
         # Set up a node operator account with 1000 ndau needed to self-stake.
         node_account = src.util.helpers.random_string()
         ndau(f'account new {node_account}')
+        # We can claim the accont before funding it since tx fees are zero.
         ndau(f'account claim {node_account}')
         # Use ndau('rfe') instead of rfe() to avoid fixture recursion.
         ndau(f'rfe 1000 {node_account}')
@@ -934,7 +909,7 @@ def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_gen
         distribution_script = base64.b64encode(distribution_script_bytes).decode('utf-8')
         ndau(f'account register-node {node_account} {rpc_address} {distribution_script}')
 
-        # Set up a reward target account.
+        # Set up a reward target account.  Claim tx fee is zero so we don't have to rfe to it.
         reward_account = src.util.helpers.random_string()
         ndau(f'account new {reward_account}')
         ndau(f'account claim {reward_account}')

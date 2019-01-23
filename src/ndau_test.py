@@ -55,27 +55,36 @@ def test_create_account(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
 def test_transfer(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
     """Test Transfer transaction"""
 
+    # We want to test non-zero transaction fees.
+    ensure_post_genesis_tx_fees()
+
     # Set up accounts to transfer between.
     account1 = src.util.helpers.random_string()
     src.util.helpers.set_up_account(ndau, rfe, account1)
     account2 = src.util.helpers.random_string()
     src.util.helpers.set_up_account(ndau, rfe, account2)
 
-    # We want to test non-zero transaction fees.
-    ensure_post_genesis_tx_fees()
+    # One napu for the claim transaction.
+    account_data1 = json.loads(ndau(f'account query {account1}'))
+    assert account_data1['balance'] == 1000000000 - src.util.constants.ONE_NAPU_FEE
 
     # Transfer
     ndau(f'transfer 1 {account1} {account2}')
     account_data1 = json.loads(ndau(f'account query {account1}'))
     account_data2 = json.loads(ndau(f'account query {account2}'))
-    assert account_data1['balance'] == 900000000 - src.util.constants.ONE_NAPU_FEE
+    # One napu for the claim transaction, one for the transfer.
+    assert account_data1['balance'] == 900000000 - 2 * src.util.constants.ONE_NAPU_FEE
     assert account_data1['lock'] == None
-    assert account_data2['balance'] == 1100000000
+    # One napu for the claim transaction.
+    assert account_data2['balance'] == 1100000000 - src.util.constants.ONE_NAPU_FEE
     assert account_data2['lock'] == None
 
 
 def test_transfer_lock(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
     """Test TransferLock transaction"""
+
+    # We want to test non-zero transaction fees.
+    ensure_post_genesis_tx_fees()
 
     # Set up source claimed account with funds.
     account1 = src.util.helpers.random_string()
@@ -85,16 +94,19 @@ def test_transfer_lock(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
     account2 = src.util.helpers.random_string()
     ndau(f'account new {account2}')
 
-    # We want to test non-zero transaction fees.
-    ensure_post_genesis_tx_fees()
+    # One napu for the claim transaction.
+    account_data1 = json.loads(ndau(f'account query {account1}'))
+    assert account_data1['balance'] == 1000000000 - src.util.constants.ONE_NAPU_FEE
 
     # TransferLock
     lock_months = 3
     ndau(f'transfer-lock 1 {account1} {account2} {lock_months}m')
     account_data1 = json.loads(ndau(f'account query {account1}'))
     account_data2 = json.loads(ndau(f'account query {account2}'))
-    assert account_data1['balance'] == 900000000 - src.util.constants.ONE_NAPU_FEE
+    # One napu for the claim transaction, one for the transfer-lock.
+    assert account_data1['balance'] == 900000000 - 2 * src.util.constants.ONE_NAPU_FEE
     assert account_data1['lock'] == None
+    # No claim transaction, no fee.
     assert account_data2['balance'] == 100000000
     assert account_data2['lock'] != None
     assert account_data2['lock']['unlocksOn'] == None
