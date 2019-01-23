@@ -74,8 +74,8 @@ def test_set_get(chaos, ndau):
     print(conf_lines)
     src.util.helpers.set_up_account(ndau, _random_string)
     src.util.helpers.set_up_namespace(chaos, _random_string)
-    chaos(f'set {_random_string} -k key -v value')
-    v = chaos(f'get {_random_string} -k key -s')
+    chaos(f'set {_random_string} key value')
+    v = chaos(f'get {_random_string} key -s')
     assert v == 'value'
 
 
@@ -85,9 +85,9 @@ def test_set_delay_get(chaos, ndau):
     _random_string = src.util.helpers.random_string()
     src.util.helpers.set_up_account(ndau, _random_string)
     src.util.helpers.set_up_namespace(chaos, _random_string)
-    chaos(f'set {_random_string} -k key -v value')
+    chaos(f'set {_random_string} key value')
     sleep(2)
-    v = chaos(f'get {_random_string} -k key -s')
+    v = chaos(f'get {_random_string} key -s')
     assert v == 'value'
 
 
@@ -96,9 +96,9 @@ def test_remove(chaos, ndau):
     _random_string = src.util.helpers.random_string()
     src.util.helpers.set_up_account(ndau, _random_string)
     src.util.helpers.set_up_namespace(chaos, _random_string)
-    chaos(f'set {_random_string} -k key -v value')
-    chaos(f"set {_random_string} -k key -v ''")
-    v = chaos(f'get {_random_string} -k key -s')
+    chaos(f'set {_random_string} key value')
+    chaos(f"set {_random_string} key --value-file=/dev/null")
+    v = chaos(f'get {_random_string} key -s')
     assert v == ''
 
 
@@ -114,7 +114,7 @@ def test_get_ns(chaos, ndau, chaos_namespace_query, ndau_account_query):
             src.util.helpers.set_up_namespace(chaos, ns)
         else:
             num_ns -= 1
-        chaos(f'set {ns} -k key -v value')
+        chaos(f'set {ns} key value')
     # wait to ensure that the blockchain is updated
     sleep(2)
 
@@ -133,9 +133,9 @@ def test_dump(chaos, ndau, chaos_namespace_query, ndau_account_query):
             src.util.helpers.set_up_account(ndau, ns)
         if chaos_namespace_query(ns) == f'getting namespace: no such identity: {ns}':
             src.util.helpers.set_up_namespace(chaos, ns)
-        chaos(f'set {ns} -k key -v "value {ns}"')
-    chaos('set one -k "another key" -v "another value"')
-    chaos('set one -k "the key" -v "let go"')
+        chaos(f'set {ns} key "value {ns}"')
+    chaos('set one "another key" "another value"')
+    chaos('set one "the key" "let go"')
 
     expected_lines = set((
         '"key"="value one"',
@@ -153,9 +153,9 @@ def test_can_retrieve_values_using_namespace(chaos, ndau):
     temp = src.util.helpers.random_string()
     src.util.helpers.set_up_account(ndau, temp)
     namespace_b64 = src.util.helpers.set_up_namespace(chaos, temp)
-    chaos(f'set {temp} -k "this key is durable" -v "really"')
+    chaos(f'set {temp} "this key is durable" "really"')
 
-    val = chaos(f'get --ns={namespace_b64} -k "this key is durable" -s')
+    val = chaos(f'get --ns={namespace_b64} "this key is durable" -s')
     assert val == "really"
 
 
@@ -167,9 +167,9 @@ def test_cannot_overwrite_others_namespace(chaos, ndau, chaos_namespace_query, n
             src.util.helpers.set_up_account(ndau, ns)
         if chaos_namespace_query(ns) == f'getting namespace: no such identity: {ns}':
             src.util.helpers.set_up_namespace(chaos, ns)
-        chaos(f'set {ns} -k key -v "value {ns}"')
+        chaos(f'set {ns} key "value {ns}"')
     for ns in nss:
-        v = chaos(f'get {ns} -k key -s')
+        v = chaos(f'get {ns} key -s')
         assert v == f'value {ns}'
 
 
@@ -180,12 +180,12 @@ def test_get_history(chaos, ndau):
     src.util.helpers.set_up_account(ndau, historic)
     src.util.helpers.set_up_namespace(chaos, historic)
     for i in range(5):
-        chaos(f'set {historic} -k counter -v {i}')
+        chaos(f'set {historic} counter {i}')
         # wait for a few blocks to pass before setting next value
         sleep(2)
     history = [
         line.strip()
-        for line in chaos(f'history {historic} -k counter -s').splitlines()
+        for line in chaos(f'history {historic} counter -s').splitlines()
         if len(line.strip()) > 0 and 'Height' not in line
     ]
     assert history == [str(i) for i in range(5)]
@@ -205,7 +205,7 @@ def test_reject_non_whitelisted_scps(chaos_and_whitelist):
 
     # TODO: Refactor this for the new way we handle system namespaces.
     # --sys is no longer supported.
-    #sys_val = chaos(f'get --sys -k {key} -s')
+    #sys_val = chaos(f'get --sys {key} -s')
     #assert len(sys_val.strip()) == 0
 
 
@@ -269,6 +269,6 @@ def test_whitelisted_scps_are_accepted(use_kub, chaos_and_whitelist):
     sleep(3)
 
     print('verifying sys value')
-    actual_val = chaos(f'get --sys -k {key} -s')
+    actual_val = chaos(f'get --sys {key} -s')
     assert actual_val == value
     """
