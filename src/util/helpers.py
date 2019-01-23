@@ -5,9 +5,6 @@ Helper functions for common tasks that don't need to be pytest fixures.
 from random import choices
 from string import ascii_lowercase, digits
 
-import src.util.constants
-import src.util.helpers
-
 
 def random_string(len=16):
     return ''.join(choices(ascii_lowercase+digits, k=len))
