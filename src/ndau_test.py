@@ -68,15 +68,20 @@ def test_transfer(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
     account_data1 = json.loads(ndau(f'account query {account1}'))
     assert account_data1['balance'] == 1000000000 - src.util.constants.ONE_NAPU_FEE
 
+    orig_ndau = 10 # from set_up_account()
+    orig_napu = orig_ndau * 1e8
+    xfer_ndau = 1 # We'll transfer this amount
+    xfer_napu = xfer_ndau * 1e8
+
     # Transfer
-    ndau(f'transfer 1 {account1} {account2}')
+    ndau(f'transfer {xfer_ndau} {account1} {account2}')
     account_data1 = json.loads(ndau(f'account query {account1}'))
     account_data2 = json.loads(ndau(f'account query {account2}'))
-    # One napu for the claim transaction, one for the transfer.
-    assert account_data1['balance'] == 900000000 - 2 * src.util.constants.ONE_NAPU_FEE
+    # Subtract one napu for the claim transaction, one for the transfer.
+    assert account_data1['balance'] == orig_napu - xfer_napu - 2 * src.util.constants.ONE_NAPU_FEE
     assert account_data1['lock'] == None
-    # One napu for the claim transaction.
-    assert account_data2['balance'] == 1100000000 - src.util.constants.ONE_NAPU_FEE
+    # Subtract one napu for the claim transaction.
+    assert account_data2['balance'] == orig_napu + xfer_napu - src.util.constants.ONE_NAPU_FEE
     assert account_data2['lock'] == None
 
 
@@ -98,16 +103,21 @@ def test_transfer_lock(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
     account_data1 = json.loads(ndau(f'account query {account1}'))
     assert account_data1['balance'] == 1000000000 - src.util.constants.ONE_NAPU_FEE
 
+    orig_ndau = 10 # from set_up_account()
+    orig_napu = orig_ndau * 1e8
+    xfer_ndau = 1 # We'll transfer this amount
+    xfer_napu = xfer_ndau * 1e8
+
     # TransferLock
     lock_months = 3
-    ndau(f'transfer-lock 1 {account1} {account2} {lock_months}m')
+    ndau(f'transfer-lock {xfer_ndau} {account1} {account2} {lock_months}m')
     account_data1 = json.loads(ndau(f'account query {account1}'))
     account_data2 = json.loads(ndau(f'account query {account2}'))
-    # One napu for the claim transaction, one for the transfer-lock.
-    assert account_data1['balance'] == 900000000 - 2 * src.util.constants.ONE_NAPU_FEE
+    # Subtract one napu for the claim transaction, one for the transfer-lock.
+    assert account_data1['balance'] == orig_napu - xfer_napu - 2 * src.util.constants.ONE_NAPU_FEE
     assert account_data1['lock'] == None
-    # No claim transaction, no fee.
-    assert account_data2['balance'] == 100000000
+    # No claim transaction, no fee.  Just gain the amount transferred.
+    assert account_data2['balance'] == xfer_napu
     assert account_data2['lock'] != None
     assert account_data2['lock']['unlocksOn'] == None
 
