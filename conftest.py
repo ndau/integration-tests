@@ -403,7 +403,7 @@ def ndautool_build(keeptemp, ndautool_repo):
 
 
 @pytest.fixture
-def chaos_node_and_tool(chaos_node, chaostool_build, chaos_node_exists):
+def chaos_node_and_tool(chaos_node, chaostool_build, chaos_node_exists, ndau_node_exists):
     """
     Run a chaos node, and configure the chaos tool to connect to it.
 
@@ -419,8 +419,9 @@ def chaos_node_and_tool(chaos_node, chaostool_build, chaos_node_exists):
     # Localnet already has the conf set up.
     if use_kub:
         address = 'http://' + chaos_node_exists['address'] + ':' + chaos_node_exists['nodenet0_rpc']
+        address_ndau = 'http://' + ndau_node_exists['address'] + ':' + ndau_node_exists['nodenet0_rpc']
         subp(
-            f'{chaostool_build["bin"]} conf {address}',
+            f'{chaostool_build["bin"]} conf {address} --ndau {address_ndau}',
             env=env,
         )
 
@@ -608,6 +609,7 @@ def two_chaos_nodes_and_tool(chaos_node_two_validator, chaostool_build):
         address = 'http://' + address
 
     subp(
+        # TODO: Once we stop skipping two-node tests, we should add an --ndau argument here.
         f'{chaostool_build["bin"]} conf {address}',
         env=env,
     )
@@ -1087,3 +1089,88 @@ def set_addresses_in_toml(use_kub, ndau):
     assert any(constants.RFE_ADDRESS in line for line in conf_lines)
     assert any(constants.NNR_ADDRESS in line for line in conf_lines)
     assert any(constants.CVC_ADDRESS in line for line in conf_lines)
+
+
+@pytest.fixture(autouse=True)
+def set_bpc_in_toml(use_kub, ndau):
+    # When running on localnet, the rfe address is already present in the config.
+    if not use_kub:
+        return
+
+    conf_path = ndau('conf-path')
+
+    # If the entries are there already, we're done.
+    f = open(conf_path, 'r')
+    conf_lines = f.readlines()
+    f.close()
+    if any(constants.BPC_ADDRESS in line for line in conf_lines):
+        return
+
+    # Remove empty accounts list.
+    subp(f'sed -i \'\' -e "/accounts = \[\]/d" "{conf_path}"')
+
+    # Write addresses and keys into chaostool.toml file.
+    f = open(conf_path, 'a')
+    f.write('[[accounts]]\n')
+    f.write('  name = "bpc-operations"\n')
+    f.write(f'  address = "{constants.BPC_ADDRESS}"\n')
+    f.write('  [accounts.root]\n')
+    f.write('    path = "/"\n')
+    f.write(f'    public = "{constants.BPC_ROOT_PUBLIC_KEY}"\n')
+    f.write(f'    private = "{constants.BPC_ROOT_PRIVATE_KEY}"\n')
+    f.write('  [accounts.ownership]\n')
+    f.write('    path = "/44\'/20036\'/100/1"\n')
+    f.write(f'    public = "{constants.BPC_OWNERSHIP_PUBLIC_KEY}"\n')
+    f.write(f'    private = "{constants.BPC_OWNERSHIP_PRIVATE_KEY}"\n')
+    f.write('\n')
+    f.write('  [[accounts.transfer]]\n')
+    f.write('    path = "/44\'/20036\'/2000/1"\n')
+    f.write(f'    public = "{constants.BPC_VALIDATION_PUBLIC_KEY}"\n')
+    f.write(f'    private = "{constants.BPC_VALIDATION_PRIVATE_KEY}"\n')
+    f.close()
+
+    # Make sure the addresses exist in ndautool.toml file.
+    f = open(conf_path, 'r')
+    conf_lines = f.readlines()
+    f.close()
+    assert any(constants.BPC_ADDRESS in line for line in conf_lines)
+
+
+@pytest.fixture(autouse=True)
+def set_sysvar_in_toml(use_kub, chaos):
+    # When running on localnet, the rfe address is already present in the config.
+    if not use_kub:
+        return
+
+    conf_path = chaos('conf-path')
+
+    # If the entries are there already, we're done.
+    f = open(conf_path, 'r')
+    conf_lines = f.readlines()
+    f.close()
+    if any(constants.BPC_ADDRESS in line for line in conf_lines):
+        return
+
+    # Remove empty identities list.
+    subp(f'sed -i \'\' -e "/identities = \[\]/d" "{conf_path}"')
+
+    # Write addresses and keys into chaostool.toml file.
+    f = open(conf_path, 'a')
+    f.write('[[identities]]\n')
+    f.write(f'  name = "{constants.SYSVAR_IDENTITY}"\n')
+    f.write('  [identities.chaos]\n')
+    f.write(f'    public = "{constants.SYSVAR_PUBLIC_KEKY}"\n')
+    f.write(f'    private = "{constants.SYSVAR_PRIVATE_KEY}"\n')
+    f.write('  [identities.ndau]\n')
+    f.write(f'    address = "{constants.BPC_ADDRESS}"\n')
+    f.write('\n')
+    f.write('    [[identities.ndau.keys]]\n')
+    f.write(f'      public = "{constants.BPC_VALIDATION_PUBLIC_KEY}"\n')
+    f.write(f'      private = "{constants.BPC_VALIDATION_PRIVATE_KEY}"\n')
+    f.close()
+
+    # Make sure the addresses exist in ndautool.toml file.
+    f = open(conf_path, 'r')
+    conf_lines = f.readlines()
+    f.close()
+    assert any(constants.BPC_ADDRESS in line for line in conf_lines)
