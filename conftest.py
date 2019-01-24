@@ -992,7 +992,7 @@ def perform_genesis(
         ndau(f'account credit-eai {node_account}')
 
         # NOTE: From this point on, this fixture acts like a test method.  It's convenient to
-        # check that EAI worked properly right after we perform it.  We only want to to perform
+        # check that EAI worked properly right after we perform it.  We only want to perform
         # the CreditEAI once per integration test run, so we combine the test code with the
         # fixture code.
 
