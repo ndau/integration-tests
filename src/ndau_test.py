@@ -3,8 +3,7 @@
 import base64
 import json
 import pytest
-import src.util.constants
-import src.util.helpers
+import src.util.constants as constants
 from src.util.subp import subp
 from time import sleep
 
@@ -21,9 +20,9 @@ def test_genesis(perform_genesis):
     perform_genesis()
 
 
-def test_create_account(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
+def test_create_account(ndau, rfe, ensure_post_genesis_tx_fees, random_string):
     """Create account, RFE to it, and check attributes"""
-    _random_string = src.util.helpers.random_string('generic')
+    _random_string = random_string('generic')
     known_ids = ndau('account list').splitlines()
     # make sure account does not already exist
     assert not any(_random_string in id_line for id_line in known_ids)
@@ -51,20 +50,20 @@ def test_create_account(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
     account_data = json.loads(ndau(f'account query {_random_string}'))
     assert account_data['validationKeys'] != None
     # check that 1 napu tx fee was deducted from account
-    assert account_data['balance'] == orig_napu - src.util.constants.ONE_NAPU_FEE
+    assert account_data['balance'] == orig_napu - constants.ONE_NAPU_FEE
 
 
-def test_transfer(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
+def test_transfer(ndau, ensure_post_genesis_tx_fees, random_string, set_up_account):
     """Test Transfer transaction"""
 
     # We want to test non-zero transaction fees.
     ensure_post_genesis_tx_fees()
 
     # Set up accounts to transfer between.
-    account1 = src.util.helpers.random_string('xfer1')
-    src.util.helpers.set_up_account(ndau, rfe, account1)
-    account2 = src.util.helpers.random_string('xfer2')
-    src.util.helpers.set_up_account(ndau, rfe, account2)
+    account1 = random_string('xfer1')
+    set_up_account(account1)
+    account2 = random_string('xfer2')
+    set_up_account(account2)
 
     orig_ndau = 10 # from set_up_account()
     orig_napu = orig_ndau * 1e8
@@ -73,32 +72,32 @@ def test_transfer(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
 
     # One napu for the claim transaction.
     account_data1 = json.loads(ndau(f'account query {account1}'))
-    assert account_data1['balance'] == orig_napu - src.util.constants.ONE_NAPU_FEE
+    assert account_data1['balance'] == orig_napu - constants.ONE_NAPU_FEE
 
     # Transfer
     ndau(f'transfer {xfer_ndau} {account1} {account2}')
     account_data1 = json.loads(ndau(f'account query {account1}'))
     account_data2 = json.loads(ndau(f'account query {account2}'))
     # Subtract one napu for the claim transaction, one for the transfer.
-    assert account_data1['balance'] == orig_napu - xfer_napu - 2 * src.util.constants.ONE_NAPU_FEE
+    assert account_data1['balance'] == orig_napu - xfer_napu - 2 * constants.ONE_NAPU_FEE
     assert account_data1['lock'] == None
     # Subtract one napu for the claim transaction.
-    assert account_data2['balance'] == orig_napu + xfer_napu - src.util.constants.ONE_NAPU_FEE
+    assert account_data2['balance'] == orig_napu + xfer_napu - constants.ONE_NAPU_FEE
     assert account_data2['lock'] == None
 
 
-def test_transfer_lock(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
+def test_transfer_lock(ndau, ensure_post_genesis_tx_fees, random_string, set_up_account):
     """Test TransferLock transaction"""
 
     # We want to test non-zero transaction fees.
     ensure_post_genesis_tx_fees()
 
     # Set up source claimed account with funds.
-    account1 = src.util.helpers.random_string('xferlock1')
-    src.util.helpers.set_up_account(ndau, rfe, account1)
+    account1 = random_string('xferlock1')
+    set_up_account(account1)
 
     # Create destination account, but don't claim or rfe to it (otherwise transfer-lock fails).
-    account2 = src.util.helpers.random_string('xferlock2')
+    account2 = random_string('xferlock2')
     ndau(f'account new {account2}')
 
     orig_ndau = 10 # from set_up_account()
@@ -108,7 +107,7 @@ def test_transfer_lock(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
 
     # One napu for the claim transaction.
     account_data1 = json.loads(ndau(f'account query {account1}'))
-    assert account_data1['balance'] == orig_napu - src.util.constants.ONE_NAPU_FEE
+    assert account_data1['balance'] == orig_napu - constants.ONE_NAPU_FEE
 
     # TransferLock
     lock_months = 3
@@ -116,7 +115,7 @@ def test_transfer_lock(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
     account_data1 = json.loads(ndau(f'account query {account1}'))
     account_data2 = json.loads(ndau(f'account query {account2}'))
     # Subtract one napu for the claim transaction, one for the transfer-lock.
-    assert account_data1['balance'] == orig_napu - xfer_napu - 2 * src.util.constants.ONE_NAPU_FEE
+    assert account_data1['balance'] == orig_napu - xfer_napu - 2 * constants.ONE_NAPU_FEE
     assert account_data1['lock'] == None
     # No claim transaction, no fee.  Just gain the amount transferred.
     assert account_data2['balance'] == xfer_napu
@@ -124,12 +123,12 @@ def test_transfer_lock(chaos, ndau, rfe, ensure_post_genesis_tx_fees):
     assert account_data2['lock']['unlocksOn'] == None
 
 
-def test_lock_notify(ndau, rfe):
+def test_lock_notify(ndau, random_string, set_up_account):
     """Test Lock and Notify transactions"""
 
     # Set up account to lock.
-    account = src.util.helpers.random_string('lock-notify')
-    src.util.helpers.set_up_account(ndau, rfe, account)
+    account = random_string('lock-notify')
+    set_up_account(account)
 
     # Lock
     lock_months = 3
@@ -145,12 +144,12 @@ def test_lock_notify(ndau, rfe):
     assert account_data['lock']['unlocksOn'] != None
 
 
-def test_change_settlement_period(ndau, rfe):
+def test_change_settlement_period(ndau, random_string, set_up_account):
     """Test ChangeSettlementPeriod transaction"""
 
     # Set up an account.
-    account = src.util.helpers.random_string('settlement-period')
-    src.util.helpers.set_up_account(ndau, rfe, account)
+    account = random_string('settlement-period')
+    set_up_account(account)
     account_data = json.loads(ndau(f'account query {account}'))
     assert account_data['settlementSettings'] != None
     assert account_data['settlementSettings']['Period'] == 't0s'
@@ -163,12 +162,12 @@ def test_change_settlement_period(ndau, rfe):
     assert account_data['settlementSettings']['Period'] == 't3m'
 
 
-def test_change_validation(ndau, rfe):
+def test_change_validation(ndau, random_string, set_up_account):
     """Test ChangeValidation transaction"""
 
     # Set up an account.
-    account = src.util.helpers.random_string('change-validation')
-    src.util.helpers.set_up_account(ndau, rfe, account)
+    account = random_string('change-validation')
+    set_up_account(account)
     account_data = json.loads(ndau(f'account query {account}'))
     assert account_data['validationKeys'] != None
     assert len(account_data['validationKeys']) == 1

@@ -10,15 +10,17 @@ import os
 import os.path
 from pathlib import Path
 import pytest
+from random import choices
 import shutil
 import subprocess
+from string import ascii_lowercase, digits
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 import time
 
 from src.util.conf import load
 from src.util.repo import go_repo, within
 from src.util.subp import subp
-import src.util.constants
+import src.util.constants as constants
 
 
 def pytest_addoption(parser):
@@ -230,8 +232,8 @@ def chaos_node_exists(use_kub, node_net):
         nodenet1_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + node_net + '-1-nodegroup-chaos-tendermint-service')
     else:
         address = 'localhost'
-        nodenet0_rpc = str(src.util.constants.LOCALNET0_CHAOS_RPC)
-        nodenet1_rpc = str(src.util.constants.LOCALNET1_CHAOS_RPC)
+        nodenet0_rpc = str(constants.LOCALNET0_CHAOS_RPC)
+        nodenet1_rpc = str(constants.LOCALNET1_CHAOS_RPC)
     print(f'address: {address}')
     print(f'nodenet0_rpc: {nodenet0_rpc}')
     print(f'nodenet1_rpc: {nodenet1_rpc}')
@@ -309,8 +311,8 @@ def ndau_node_exists(use_kub, node_net):
         nodenet1_rpc = run_cmd('kubectl get service --namespace default -o jsonpath=\'{.spec.ports[?(@.name=="rpc")].nodePort}\' ' + node_net + '-1-nodegroup-ndau-tendermint-service')
     else:
         address = 'localhost'
-        nodenet0_rpc = str(src.util.constants.LOCALNET0_NDAU_RPC)
-        nodenet1_rpc = str(src.util.constants.LOCALNET1_NDAU_RPC)
+        nodenet0_rpc = str(constants.LOCALNET0_NDAU_RPC)
+        nodenet1_rpc = str(constants.LOCALNET1_NDAU_RPC)
     print(f'address: {address}')
     print(f'nodenet0_rpc: {nodenet0_rpc}')
     print(f'nodenet1_rpc: {nodenet1_rpc}')
@@ -756,6 +758,42 @@ def ndau_account_query(ndau_node_and_tool):
 
 
 @pytest.fixture
+def random_string():
+    """The prefix is useful for debugging when using random account names."""
+    def rf(prefix='', length=16, **kwargs):
+        if len(prefix) > 0:
+            # Put a delimiter between the human-readable prefix and the random part.
+            prefix += '-'
+        return prefix + ''.join(choices(ascii_lowercase+digits, k=length))
+    return rf
+
+
+@pytest.fixture
+def set_up_account(ndau, rfe):
+    """
+    Helper function for creating a new account, rfe'ing to it, claiming it.
+    """
+    def rf(account, **kwargs):
+        ndau(f'account new {account}')
+        rfe(10, account)
+        ndau(f'account claim {account}')
+    return rf
+
+
+@pytest.fixture
+def set_up_namespace(chaos):
+    """
+    Helper function for creating it as an identity for use as a namespace for key-value pairs.
+    """
+    def rf(ns, **kwargs):
+        res = chaos(f'id new {ns}')
+        ns_b64 = res.split()[4]
+        chaos(f'id copy-keys-from {ns}')
+        return ns_b64
+    return rf
+
+
+@pytest.fixture
 def rfe(ndau, ensure_post_genesis_tx_fees):
     """
     Wrapper for ndau(f'rfe {amount} {account}') that ensures the RFE account has ndau to spend on
@@ -776,11 +814,11 @@ def rfe(ndau, ensure_post_genesis_tx_fees):
 def ensure_pre_genesis_tx_fees(chaos):
     """Ensure we have set up zero transaction fees for pre-genesis tests."""
     def rf(**kwargs):
-        sys_id = src.util.constants.SYSVAR_IDENTITY
-        key = src.util.constants.TRANSACTION_FEE_SCRIPT_KEY
+        sys_id = constants.SYSVAR_IDENTITY
+        key = constants.TRANSACTION_FEE_SCRIPT_KEY
         current_script = chaos(f'get {sys_id} {key} -m')
         # If the tx fees are already zero, there is nothing to do.
-        if current_script != src.util.constants.ZERO_FEE_SCRIPT:
+        if current_script != constants.ZERO_FEE_SCRIPT:
             # Calling ensure_genesis() would cause a recursive fixture dependency.
             # We have no choice but to attempt this sysvar change regardless of current tx fees.
             # If there are non-zero tx fees in place, then it's likely that the BPC has enough
@@ -788,8 +826,8 @@ def ensure_pre_genesis_tx_fees(chaos):
             # funded when we performed genesis before we changed the fees to non-zero.  The only
             # way it wouldn't is if we're testing against a blockchain that had its fees changed
             # outside of our integration test suite.
-            new_script = src.util.constants.ZERO_FEE_SCRIPT
-            value = new_script.replace('"', '\\"')
+            new_script = constants.ZERO_FEE_SCRIPT
+            value = new_script.replace('"', r'\"')
             chaos(f'set {sys_id} {key} --value-json {value}')
 
             # Check that it worked.
@@ -805,16 +843,16 @@ def ensure_post_genesis_tx_fees(chaos, ensure_genesis):
     Returns True if we changed the tx fees.
     """
     def rf(**kwargs):
-        sys_id = src.util.constants.SYSVAR_IDENTITY
-        key = src.util.constants.TRANSACTION_FEE_SCRIPT_KEY
+        sys_id = constants.SYSVAR_IDENTITY
+        key = constants.TRANSACTION_FEE_SCRIPT_KEY
         current_script = chaos(f'get {sys_id} {key} -m')
         # If the tx fees are aready set to one-napu per transaction, there is nothing to do.
-        if current_script != src.util.constants.ONE_NAPU_FEE_SCRIPT:
+        if current_script != constants.ONE_NAPU_FEE_SCRIPT:
             # Make sure we've performed genesis so that the BPC account can pay the sysvar tx fee.
             ensure_genesis()
 
-            new_script = src.util.constants.ONE_NAPU_FEE_SCRIPT
-            value = new_script.replace('"', '\\"')
+            new_script = constants.ONE_NAPU_FEE_SCRIPT
+            value = new_script.replace('"', r'\"')
             chaos(f'set {sys_id} {key} --value-json {value}')
 
             # Check that it worked.
@@ -831,9 +869,9 @@ def ensure_genesis(ndau, perform_genesis):
     """
     def rf(**kwargs):
         # If the CVC and NNR accounts have ndau, we must have already performed this in the past.
-        account_data_rfe = json.loads(ndau(f'account query -a {src.util.constants.RFE_ADDRESS}'))
-        account_data_nnr = json.loads(ndau(f'account query -a {src.util.constants.NNR_ADDRESS}'))
-        account_data_cvc = json.loads(ndau(f'account query -a {src.util.constants.CVC_ADDRESS}'))
+        account_data_rfe = json.loads(ndau(f'account query -a {constants.RFE_ADDRESS}'))
+        account_data_nnr = json.loads(ndau(f'account query -a {constants.NNR_ADDRESS}'))
+        account_data_cvc = json.loads(ndau(f'account query -a {constants.CVC_ADDRESS}'))
         if account_data_rfe['balance'] == 0 or \
            account_data_nnr['balance'] == 0 or \
            account_data_cvc['balance'] == 0:
@@ -844,7 +882,8 @@ def ensure_genesis(ndau, perform_genesis):
 
 
 @pytest.fixture
-def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_genesis_tx_fees):
+def perform_genesis(
+        chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_genesis_tx_fees, random_string):
     """
     Create a few RFE transactions to simulate initial purchasers filling the blockchain
     without tx fees present.  Then CreditEAI and NNR and make sure all accounts get their EAI.
@@ -871,15 +910,15 @@ def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_gen
         #   https://paper.dropbox.com/doc/ \
         #     BPC-Genesis-Network-Values-Review--AVmUBCdsg3E7LBUupn5GuB7aAg-U5qFm5bqpvATFAJj75B6b
         # Use ndau('rfe') instead of rfe() to avoid fixture recursion.
-        ndau(f'rfe 10 -a {src.util.constants.RFE_ADDRESS}')
+        ndau(f'rfe 10 -a {constants.RFE_ADDRESS}')
 
         # The RFE account should now have some ndau to spend on RFE transaction fees.
-        account_data = json.loads(ndau(f'account query -a {src.util.constants.RFE_ADDRESS}'))
+        account_data = json.loads(ndau(f'account query -a {constants.RFE_ADDRESS}'))
         # The RFE account may have already had some ndau, so check for minimum expected balance.
         assert account_data['balance'] >= 1000000000
 
         # Set up a purchaser account.  We don't have to rfe to it to pay for 0-napu claim tx fee.
-        purchaser_account = src.util.helpers.random_string('genesis-purchaser')
+        purchaser_account = random_string('genesis-purchaser')
         ndau(f'account new {purchaser_account}')
         ndau(f'account claim {purchaser_account}')
 
@@ -893,7 +932,7 @@ def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_gen
         ndau(f'account lock {purchaser_account} {lock_years}y')
 
         # Set up a node operator account with 1000 ndau needed to self-stake.
-        node_account = src.util.helpers.random_string('genesis-node')
+        node_account = random_string('genesis-node')
         ndau(f'account new {node_account}')
         # We can claim the accont before funding it since tx fees are zero.
         ndau(f'account claim {node_account}')
@@ -910,7 +949,7 @@ def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_gen
         ndau(f'account register-node {node_account} {rpc_address} {distribution_script}')
 
         # Set up a reward target account.  Claim tx fee is zero so we don't have to rfe to it.
-        reward_account = src.util.helpers.random_string('genesis-reward')
+        reward_account = random_string('genesis-reward')
         ndau(f'account new {reward_account}')
         ndau(f'account claim {reward_account}')
         ndau(f'account set-rewards-target {node_account} {reward_account}')
@@ -919,7 +958,7 @@ def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_gen
         ndau(f'account delegate {purchaser_account} {node_account}')
 
         # Get the EAI fee table from chaos.
-        eai_fee_table = json.loads(chaos(f'get sysvar {src.util.constants.EAI_FEE_TABLE_KEY} -m'))
+        eai_fee_table = json.loads(chaos(f'get sysvar {constants.EAI_FEE_TABLE_KEY} -m'))
 
         # Build up an array of accounts with EAI fee percents associated with each.
         accounts = []
@@ -942,8 +981,7 @@ def perform_genesis(chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_gen
         account_data = json.loads(ndau(f'account query {purchaser_account}'))
         accounts.append(Account(purchaser_account, '', percent / scale, account_data['balance']))
 
-        # Submit CreditEAI transaction so that the market maker can have ndau to pay for RFE tx
-        # fees.  The initial CreditEAI
+        # Submit CreditEAI tx so that bpc operations can have ndau to pay for changing sysvars.
         ndau(f'account credit-eai {node_account}')
 
         # We'll compute napu you earn with the amount of locked ndau in play, with no time
@@ -999,29 +1037,29 @@ def set_addresses_in_toml(use_kub, ndau):
     f = open(conf_path, 'r')
     conf_lines = f.readlines()
     f.close()
-    if any(src.util.constants.RFE_ADDRESS in line for line in conf_lines) and \
-       any(src.util.constants.NNR_ADDRESS in line for line in conf_lines) and \
-       any(src.util.constants.CVC_ADDRESS in line for line in conf_lines):
+    if any(constants.RFE_ADDRESS in line for line in conf_lines) and \
+       any(constants.NNR_ADDRESS in line for line in conf_lines) and \
+       any(constants.CVC_ADDRESS in line for line in conf_lines):
         return
 
     # Write addresses and keys into ndautool.toml file.
     f = open(conf_path, 'a')
     f.write('[rfe]\n')
-    f.write(f'  address = "{src.util.constants.RFE_ADDRESS}"\n')
-    f.write(f'  keys = ["{src.util.constants.RFE_KEY}"]\n')
+    f.write(f'  address = "{constants.RFE_ADDRESS}"\n')
+    f.write(f'  keys = ["{constants.RFE_KEY}"]\n')
     f.write('\n')
     f.write('[nnr]\n')
-    f.write(f'  address = "{src.util.constants.NNR_ADDRESS}"\n')
-    f.write(f'  keys = ["{src.util.constants.NNR_KEY}"]\n')
+    f.write(f'  address = "{constants.NNR_ADDRESS}"\n')
+    f.write(f'  keys = ["{constants.NNR_KEY}"]\n')
     f.write('[cvc]\n')
-    f.write(f'  address = "{src.util.constants.CVC_ADDRESS}"\n')
-    f.write(f'  keys = ["{src.util.constants.CVC_KEY}"]\n')
+    f.write(f'  address = "{constants.CVC_ADDRESS}"\n')
+    f.write(f'  keys = ["{constants.CVC_KEY}"]\n')
     f.close()
 
     # Make sure the addresses exist in ndautool.toml file.
     f = open(conf_path, 'r')
     conf_lines = f.readlines()
     f.close()
-    assert any(src.util.constants.RFE_ADDRESS in line for line in conf_lines)
-    assert any(src.util.constants.NNR_ADDRESS in line for line in conf_lines)
-    assert any(src.util.constants.CVC_ADDRESS in line for line in conf_lines)
+    assert any(constants.RFE_ADDRESS in line for line in conf_lines)
+    assert any(constants.NNR_ADDRESS in line for line in conf_lines)
+    assert any(constants.CVC_ADDRESS in line for line in conf_lines)
