@@ -14,6 +14,7 @@ from random import choices
 import shutil
 import subprocess
 from string import ascii_lowercase, digits
+import tempfile
 from tempfile import NamedTemporaryFile, TemporaryDirectory
 import time
 
