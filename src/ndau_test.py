@@ -15,11 +15,6 @@ def test_get_ndau_status(node_net, ndau):
     assert moniker == f'{node_net}-0'
 
 
-def test_genesis(perform_genesis):
-    """Simulate genesis operations, even if they've happened already."""
-    perform_genesis()
-
-
 def test_create_account(ndau, rfe, ensure_post_genesis_tx_fees, random_string):
     """Create account, RFE to it, and check attributes"""
     _random_string = random_string('generic')
@@ -51,6 +46,15 @@ def test_create_account(ndau, rfe, ensure_post_genesis_tx_fees, random_string):
     assert account_data['validationKeys'] != None
     # check that 1 napu tx fee was deducted from account
     assert account_data['balance'] == orig_napu - constants.ONE_NAPU_FEE
+
+
+# This test purposely positioned after one where tx fees are changed to non-zero, which requires
+# genesis to have been performed.  This was useful when ensuring perform_genesis() is only ever
+# called once per test session.  We don't need to keep this here, but it doesn't hurt.  Still, we
+# leave it here since it eases debugability of these tests.
+def test_genesis(perform_genesis):
+    """Simulate genesis operations, even if they've happened already."""
+    perform_genesis()
 
 
 def test_transfer(ndau, ensure_post_genesis_tx_fees, random_string, set_up_account):

@@ -881,9 +881,19 @@ def ensure_genesis(ndau, perform_genesis):
     return rf
 
 
+# We prevent this method from doing work more than once per test session.  There is no need to
+# perform genesis more than once on a blockchain, but we do want it performed once when running
+# the full test suite.  We can't use a scoping flag on this fixture since it relies on other
+# non-scoped fixtures, so we use a global flag instead.
+@pytest.fixture(scope='session')
+def global_data():
+    return {'performed_genesis': False}
+
+
 @pytest.fixture
 def perform_genesis(
-        chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_genesis_tx_fees, random_string):
+        chaos, ndau, ndau_no_error, ndau_node_exists, ensure_pre_genesis_tx_fees, random_string,
+        global_data):
     """
     Create a few RFE transactions to simulate initial purchasers filling the blockchain
     without tx fees present.  Then CreditEAI and NNR and make sure all accounts get their EAI.
@@ -897,6 +907,9 @@ def perform_genesis(
                 self.flag    = flg # Flag to use with account string in account query commands.
                 self.percent = pct # EAI fee percent this account receives from CreditEAI.
                 self.balance = bal # Initial balance of the account before CreditEAI.
+
+        if global_data['performed_genesis']:
+            return
 
         # We're simulating the first CreditEAI after genesis.
         # There should be no tx fees active when this happens, to simulate expected behavior.
@@ -948,12 +961,6 @@ def perform_genesis(
         distribution_script = base64.b64encode(distribution_script_bytes).decode('utf-8')
         ndau(f'account register-node {node_account} {rpc_address} {distribution_script}')
 
-        # Set up a reward target account.  Claim tx fee is zero so we don't have to rfe to it.
-        reward_account = random_string('genesis-reward')
-        ndau(f'account new {reward_account}')
-        ndau(f'account claim {reward_account}')
-        ndau(f'account set-rewards-target {node_account} {reward_account}')
-
         # Delegate purchaser account to node account.
         ndau(f'account delegate {purchaser_account} {node_account}')
 
@@ -984,6 +991,11 @@ def perform_genesis(
         # Submit CreditEAI tx so that bpc operations can have ndau to pay for changing sysvars.
         ndau(f'account credit-eai {node_account}')
 
+        # NOTE: From this point on, this fixture acts like a test method.  It's convenient to
+        # check that EAI worked properly right after we perform it.  We only want to to perform
+        # the CreditEAI once per integration test run, so we combine the test code with the
+        # fixture code.
+
         # We'll compute napu you earn with the amount of locked ndau in play, with no time
         # passing.  It's outside the scope of this test to compute this value.  Unit tests take
         # care of that.  This integration test makes sure that all the accounts in the
@@ -1007,6 +1019,15 @@ def perform_genesis(
             # Allow off-by-one discrepancies since we computed total napu using floating point.
             assert abs(eai_actual - eai_expect) <= 1
 
+        # NOTE: We also squeeze NNR testing into this fixture since it's part of verifing that the
+        # node operator gets his cut of the EAI.
+
+        # Set up a reward target account.  Claim tx fee is zero so we don't have to rfe to it.
+        reward_account = random_string('genesis-reward')
+        ndau(f'account new {reward_account}')
+        ndau(f'account claim {reward_account}')
+        ndau(f'account set-rewards-target {node_account} {reward_account}')
+
         # Nominate node rewards.  Unfortunately, we can only run this integration test once per
         # day.  When running against localnet, we can do a reset easily to test NNR repeatedly.
         nnr_result = ndau_no_error(f'nnr -g')
@@ -1022,6 +1043,8 @@ def perform_genesis(
             eai_expect = int(total_napu_expect * node_account_percent)
             # Allow off-by-one discrepancies since we computed total napu using floating point.
             assert abs(eai_actual - eai_expect) <= 1
+
+        global_data['performed_genesis'] = True
     return rf
 
 
