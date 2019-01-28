@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 """
-Utility for printing the git hashes of the repos and branches defined in the conf.toml file.
+Utility for printing the git hashes of the repos and branches defined
+in the conf.toml file.
 """
 
 from src.util.conf import load
@@ -11,21 +12,24 @@ from src.util.subp import subp
 
 def hashes(conf):
     for name, settings in conf.items():
-        with go_repo(settings['repo'], settings['logical'], settings['label']):
-            hash = subp('git rev-parse --short HEAD')
+        with go_repo(settings["repo"], settings["logical"], settings["label"]):
+            hash = subp("git rev-parse --short HEAD")
             print(f'Hash of {name} at {settings["label"]}: {hash}')
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--chaos-go-label', default='master',
-                        help='Label to check out for chaos-go')
-    parser.add_argument('--chaostool-label', default='master',
-                        help='Label to check out for chaostool')
-    parser.add_argument('--whitelist-label', default='master',
-                        help='Label to check out for whitelist')
+    parser.add_argument(
+        "--chaos-go-label", default="master", help="Label to check out for chaos-go"
+    )
+    parser.add_argument(
+        "--chaostool-label", default="master", help="Label to check out for chaostool"
+    )
+    parser.add_argument(
+        "--whitelist-label", default="master", help="Label to check out for whitelist"
+    )
 
     args = parser.parse_args()
     conf = load(
