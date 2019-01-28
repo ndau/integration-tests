@@ -362,8 +362,8 @@ def ndau_node_exists(use_kub, node_net):
     print("ndau node exists")
     if use_kub:
         address = run_cmd(
-            'kubectl get nodes -o '
-            'jsonpath=\'{.items[*].status.addresses[?(@.type=="ExternalIP")].address}\''
+            "kubectl get nodes -o "
+            "jsonpath='{.items[*].status.addresses[?(@.type==\"ExternalIP\")].address}'"
             ' | tr " " "\n" | head -n 1 | tr -d "[:space:]"'
         )
         nodenet0_rpc = run_cmd(
@@ -592,8 +592,8 @@ def chaos_node_two_validator(chaos_node_two_validator_build):
     # subprocess.run always synchronously waits for the subprocess to terminate
     # that isn't acceptable here, so we fall back to a raw Popen call
     print(
-        'run_many command: ' +
-        [os.path.join(chaos_node_two_validator_build["scripts"], "run_many.sh",)]
+        "run_many command: "
+        + [os.path.join(chaos_node_two_validator_build["scripts"], "run_many.sh")]
     )
     run_script = subprocess.Popen(
         [os.path.join(chaos_node_two_validator_build["scripts"], "run_many.sh")],
@@ -1089,17 +1089,13 @@ def perform_genesis(
             acct = entry["To"]
             if acct is None:
                 acct = node_account
-                flag = (
-                    ""
-                )
+                flag = ""
                 # node_account is an account name, no flag when
                 # querying account data.
                 node_account_percent = pct / scale
             else:
                 acct = acct[0]
-                flag = (
-                    "-a"
-                )
+                flag = "-a"
                 # acct is an address, must use the -a flag when
                 # querying account data.
             account_data = json.loads(ndau(f"account query {flag} {acct}"))
