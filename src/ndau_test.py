@@ -236,3 +236,11 @@ def test_command_validator_change(ndau):
             break
         assert voting_power == old_power
     assert new_voting_power_was_set
+
+
+def test_change_sysvar(ndau, ensure_pre_genesis_tx_fees, ensure_post_genesis_tx_fees):
+    "Test that changing a system variable doesn't kill the blockchain"
+    ensure_pre_genesis_tx_fees()
+    ensure_post_genesis_tx_fees()
+    ndau("info")
+
