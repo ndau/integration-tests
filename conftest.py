@@ -1160,7 +1160,8 @@ def perform_genesis(
         # Nominate node rewards.  Unfortunately, we can only run this integration
         # test once per day.  When running against localnet, we can do a reset
         # easily to test NNR repeatedly.
-        nnr_result = ndau_no_error(f"nnr -g")
+        # We use a random value of 0 (any value will do) for deterministic nomination.
+        nnr_result = ndau_no_error(f"nnr 0")
         if not nnr_result.startswith("not enough time since last NNR"):
             # Claim node rewards and see that the node operator gets his EAI in
             # the reward account.  We check the reward account.  If we didn't
@@ -1168,13 +1169,22 @@ def perform_genesis(
             # here.  That was tested and worked, but since we can only do one
             # NNR per day, we test the more complex situation of awarding to a
             # target reward account.
-            ndau(f"account claim-node-reward {node_account}")
-            account_data = json.loads(ndau(f"account query {reward_account}"))
-            eai_actual = account_data["balance"]
-            eai_expect = int(total_napu_expect * node_account_percent)
-            # Allow off-by-one discrepancies since we computed total napu
-            # using floating point.
-            assert abs(eai_actual - eai_expect) <= 1
+            reward_result = ndau_no_error(f"account claim-node-reward {node_account}")
+            # When running on localnet, we know we have two nodes, and only one of which
+            # has staked ndau.  So it's guaranteed to win.  When running against a kub net,
+            # there's a chance another node operator will win.  So for our integration tests
+            # we only assert on the EAI earned when the node operator account we know about
+            # is the winner.  We could consider using the webhook in this test and have the
+            # correct account claim the reward, but it may not work from Circle CI.  So for
+            # now, the best coverage of this test is running against a freshly reset localnet.
+            # We silently skip the EAI asserts here if a different account was chosen to win.
+            if not reward_result.startswith("winner was"):
+                account_data = json.loads(ndau(f"account query {reward_account}"))
+                eai_actual = account_data["balance"]
+                eai_expect = int(total_napu_expect * node_account_percent)
+                # Allow off-by-one discrepancies since we computed total napu
+                # using floating point.
+                assert abs(eai_actual - eai_expect) <= 1
 
         global_data["performed_genesis"] = True
 
