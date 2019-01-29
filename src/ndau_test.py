@@ -1,4 +1,4 @@
-"""Tests that single validator nodes operate as expected."""
+"""Tests that the ndau blockchain operates as expected."""
 
 import base64
 import json
