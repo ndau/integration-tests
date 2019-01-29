@@ -1245,7 +1245,7 @@ def set_bpc_in_toml(use_kub, ndau):
         return
 
     # Remove empty accounts list.
-    subp(r'sed -i {} -e "/accounts = \[\]/d" "{}"'.format(r"''", conf_path))
+    subp(r'sed -i {} -e "/accounts = \[\]/d" "{}"'.format("''", conf_path))
 
     # Write addresses and keys into chaostool.toml file.
     f = open(conf_path, "a")
@@ -1290,7 +1290,7 @@ def set_sysvar_in_toml(use_kub, chaos):
         return
 
     # Remove empty identities list.
-    subp(r'sed -i {} -e "/identities = \[\]/d" "{}"'.format(r"''", conf_path))
+    subp(r'sed -i {} -e "/identities = \[\]/d" "{}"'.format("''", conf_path))
 
     # Write addresses and keys into chaostool.toml file.
     f = open(conf_path, "a")
