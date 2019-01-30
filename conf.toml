@@ -8,11 +8,6 @@ repo="git@github.com:oneiro-ndev/commands.git"
 logical="github.com/oneiro-ndev/commands"
 label="master"
 
-[whitelist]
-repo="git@github.com:oneiro-ndev/whitelist.git"
-logical="github.com/oneiro-ndev/whitelist"
-label="master"
-
 [ndau-go]
 repo="git@github.com:oneiro-ndev/ndau.git"
 logical="github.com/oneiro-ndev/ndau"

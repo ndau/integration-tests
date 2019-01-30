@@ -6,8 +6,6 @@ Testing the chaosnode system in its entirety is relatively complicated, because 
 
 - The primary interface with `chaos-go` is the [`chaos`](https://us-east-1.console.aws.amazon.com/codecommit/home?region=us-east-1#/repository/chaostool/browse/HEAD/--/) command, which is both a CLI application and a go library (`tool`) with which to interface with the chaos chain.
 
-- There is a separate tool [`ndwhitelist`](https://us-east-1.console.aws.amazon.com/codecommit/home?region=us-east-1#/repository/whitelist/browse/HEAD/--/) which node operators may use to manage their whitelists for System Change Proposals. Without using this tool, all proposed SCPs will be rejected.
-
 These tools are intended for different audiences and will likely be running on separte machines in production. This makes testing their interactions in a realistic way a non-trivial proposition.
 
 ## Getting Started
@@ -35,7 +33,7 @@ These tools are intended for different audiences and will likely be running on s
 
 Tests are handled via the `pytest` unit-testing tool. To run the entire test suite, simply execute the `pytest -v` command from the repo root; it'll take care of everything else. If you'd like the testing to stop at failure X, run the command `pytest -v --maxfail=X`.  If you'd like to run a particular test, run the command `pytest test_mod.py::test_func`.  There are several command-line flags available:
 
-- `--chaos-go-label`, `--chaostool-label`, `--whitelist-label` set the label of the specified repository to build and test. A label can be anything that git accepts as a label: a short hash, full hash, branch name, and tag are all valid options. All of these default to `master`.
+- `--chaos-go-label` and `--chaostool-label` set the label of the specified repository to build and test. A label can be anything that git accepts as a label: a short hash, full hash, branch name, and tag are all valid options. All of these default to `master`.
 - `--runslow` if set runs tests which have been marked as slow. None of these tests are particularly speedy due to the heavy fixtures in play, but some are particularly poky.
 - `--skipmeta` if set skips metatests. Metatests are tests which verify that the fixtures in use to fetch and build the various dependencies are all working properly.
 - `--keeptemp` if set keeps temp files and directories around to help debug test failures.  Normally all files and directories created during testing will be removed at the end of the tests.  Temporary files will normally be named in the form of /tmp/XXXXXX_YYYYYYYY, where X's are the tool or component name, and Y's are a randomly generated string.
@@ -57,24 +55,6 @@ Tests are written in Python using [pytest](https://docs.pytest.org/en/latest/) a
 - [X] `chaostool` can set a value, and a different instance of `chaostool` can retrieve it
 - [X] `chaostool` can set a value, and a different instance of `chaostool` cannot overwrite it (i.e. namespaces work)
 - [X] `chaostool` can list the history of a value
-- [X] `chaostool` can send a non-whitelisted SCP but it it not accepted
-- [X] `ndwhitelist` can whitelist a SCP
-- [X] `chaostool` can send a whitelisted SCP and it is accepted
-
-### Two validator nodes
-
-- [*] Two validator nodes pass all single validator node tests
-- [X] When node power is equal, and one node has whitelisted a SCP but the other has not, a transaction setting that SCP is not accepted
-- [ ] `chaostool` can send Globally Trusted Validator Change transactions and see those updates reflected in the consensus
-- [ ] When one node has >2/3 of the voting power, and that node has whitelisted a SCP but the other has not, a transaction setting that SCP is accepted
-- [ ] `chaostool` can set a value in on one node and retrieve it from the other node
-
-[*]: Some tests currently skipped because test implementation incomplete.
-
-### Four validator nodes and six verifier nodes
-
-- [ ] a verifier can have voting power added and become a validator
-- [ ] a validator can have its voting power rescinded and become a verifier
 
 ### Dynamic nodes
 
