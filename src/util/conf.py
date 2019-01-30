@@ -5,8 +5,7 @@ from src.util.repo import within
 from src.util.subp import subp
 
 
-def load(*, chaos_go_label=None, chaostool_label=None, whitelist_label=None,
-        ndau_go_label=None, ndautool_label=None):
+def load(*, chaos_go_label=None, chaostool_label=None, ndau_go_label=None, ndautool_label=None):
     """
     Load configuration data.
 
@@ -22,7 +21,7 @@ def load(*, chaos_go_label=None, chaostool_label=None, whitelist_label=None,
     with open(conf_path, 'rt') as conf_fp:
         conf = toml.load(conf_fp)
     locs = locals()
-    for repo in ('chaos_go', 'chaostool', 'whitelist', 'ndau_go', 'ndautool'):
+    for repo in ('chaos_go', 'chaostool', 'ndau_go', 'ndautool'):
         label = repo + '_label'
         if locs[label] is not None:
             conf[repo.replace('_', '-')]['label'] = locs[label]

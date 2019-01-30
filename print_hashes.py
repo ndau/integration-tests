@@ -27,14 +27,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--chaostool-label", default="master", help="Label to check out for chaostool"
     )
-    parser.add_argument(
-        "--whitelist-label", default="master", help="Label to check out for whitelist"
-    )
 
     args = parser.parse_args()
     conf = load(
         chaos_go_label=args.chaos_go_label,
         chaostool_label=args.chaostool_label,
-        whitelist_label=args.whitelist_label,
     )
     hashes(conf)

@@ -1,4 +1,5 @@
-"""Tests that single validator nodes operate as expected."""
+"""Tests that the chaos blockchain operates as expected."""
+
 import os
 import subprocess
 from time import sleep
@@ -7,43 +8,6 @@ import pytest
 import json
 
 from src.util.subp import subp
-
-
-@pytest.fixture
-def chaos_and_whitelist(chaos_node_and_tool, whitelist_build):
-    """
-    Fixture providing a chaos function and a whitelist function.
-
-    The chaos function calls the chaos command in a configured environment.
-    The whitelist function calls the ndwhitelist command in a configured
-    environment.
-    """
-
-    def ch_f(cmd, **kwargs):
-        try:
-            return subp(
-                f'{chaos_node_and_tool["tool"]["bin"]} {cmd}',
-                env=chaos_node_and_tool["env"],
-                stderr=subprocess.STDOUT,
-                **kwargs,
-            )
-        except subprocess.CalledProcessError as e:
-            print(e.stdout)
-            raise
-
-    def wl_f(cmd, **kwargs):
-        try:
-            return subp(
-                f'{whitelist_build["bin"]} chaos {cmd}',
-                env=chaos_node_and_tool["env"],
-                stderr=subprocess.STDOUT,
-                **kwargs,
-            )
-        except subprocess.CalledProcessError as e:
-            print(e.stdout)
-            raise
-
-    return {"chaos": ch_f, "whitelist": wl_f}
 
 
 def test_get_chaos_status(node_net, chaos):
@@ -195,70 +159,3 @@ def test_get_history(chaos, random_string, set_up_account, set_up_namespace):
         if len(line.strip()) > 0 and "Height" not in line
     ]
     assert history == [str(i) for i in range(5)]
-
-
-def test_reject_non_whitelisted_scps(chaos_and_whitelist, random_string):
-    """`chaostool` can send a non-whitelisted SCP but it it not accepted."""
-    chaos = chaos_and_whitelist["chaos"]
-    whitelist = chaos_and_whitelist["whitelist"]
-
-    key = random_string()
-    value = random_string()
-
-    assert whitelist(f"check {key} -v {value}") == "false"
-    with pytest.raises(subprocess.CalledProcessError):
-        chaos(f"scp -k {key} -v {value}")
-
-    # TODO: Refactor this for the new way we handle system namespaces.
-    # --sys is no longer supported.
-    # sys_val = chaos(f'get --sys {key} -s')
-    # assert len(sys_val.strip()) == 0
-
-
-def test_whitelist_tool_can_whitelist(chaos_and_whitelist, random_string):
-    """`ndwhitelist` can whitelist a SCP."""
-    whitelist = chaos_and_whitelist["whitelist"]
-
-    key = random_string()
-    value = random_string()
-
-    print("whitelist path:")
-    path = whitelist("path")
-    print(path)
-    assert whitelist(f"check {key} -v {value}") == "false"
-
-    print("adding a k-v pair to whitelist")
-    print(whitelist(f"add {key} -v {value}"))
-
-    print(f"whitelist exists: {os.path.exists(path)}")
-
-    with open(path, "rb") as fp:
-        wl_data = fp.read()
-    print(f"len(wl_data): {len(wl_data)}")
-    wl_data_hex = "".join(f"{b:02x} " for b in wl_data)
-    print(f"whitelist as hex: {wl_data_hex}")
-
-    print(whitelist("list -v"))
-    assert whitelist(f"check {key} -v {value}") == "true"
-
-
-def test_whitelisted_scps_are_accepted(use_kub, chaos_and_whitelist, random_string):
-    """`chaostool` can send a whitelisted SCP and it is accepted."""
-    whitelist = chaos_and_whitelist["whitelist"]
-
-    key = random_string()
-    value = random_string()
-
-    print("adding key and value to whitelist")
-    wl_command = f"add {key} -v {value}"
-    print(f"wl command = {wl_command}")
-    wl_res = whitelist(wl_command)
-    print(f"wl res = {wl_res}")
-    # JSG if run on Kub, just check if the wl command ran successfully
-    # SCP will currently fail with remote nodes
-    if use_kub:
-        wl_res_word = wl_res.split()[0]
-        assert wl_res_word == "Successfully"
-        return
-
-    print("sending as scp")
