@@ -10,43 +10,6 @@ import json
 from src.util.subp import subp
 
 
-@pytest.fixture
-def chaos_and_whitelist(chaos_node_and_tool, whitelist_build):
-    """
-    Fixture providing a chaos function and a whitelist function.
-
-    The chaos function calls the chaos command in a configured environment.
-    The whitelist function calls the ndwhitelist command in a configured
-    environment.
-    """
-
-    def ch_f(cmd, **kwargs):
-        try:
-            return subp(
-                f'{chaos_node_and_tool["tool"]["bin"]} {cmd}',
-                env=chaos_node_and_tool["env"],
-                stderr=subprocess.STDOUT,
-                **kwargs,
-            )
-        except subprocess.CalledProcessError as e:
-            print(e.stdout)
-            raise
-
-    def wl_f(cmd, **kwargs):
-        try:
-            return subp(
-                f'{whitelist_build["bin"]} chaos {cmd}',
-                env=chaos_node_and_tool["env"],
-                stderr=subprocess.STDOUT,
-                **kwargs,
-            )
-        except subprocess.CalledProcessError as e:
-            print(e.stdout)
-            raise
-
-    return {"chaos": ch_f, "whitelist": wl_f}
-
-
 def test_get_chaos_status(node_net, chaos):
     """`chaostool` can connect to `chaos-go` and get status."""
     info = json.loads(chaos("info"))

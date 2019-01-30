@@ -37,16 +37,6 @@ def test_chaostool_repo(chaostool_repo, request):
 
 
 @pytest.mark.meta
-def test_whitelist_repo(whitelist_repo, request):
-    requested_label = request.config.getoption("--whitelist-label")
-    assert os.path.exists(whitelist_repo)
-    with within(whitelist_repo):
-        requested_hash = subp(f'git log {requested_label} -1 --pretty=tformat:"%H"')
-        actual_hash = subp('git log -1 --pretty=tformat:"%H"')
-        assert requested_hash == actual_hash
-
-
-@pytest.mark.meta
 def test_chaos_node(chaos_node_exists):
     # see https://tendermint.readthedocs.io/en/master/getting-started.html
     try:
@@ -76,13 +66,3 @@ def test_chaos_node_and_tool(chaos_node_and_tool):
     # to connect to it
     ret = subp(f'{c["tool"]["bin"]} info', env=c["env"])
     print(f"chaostool ret = {ret}")
-
-
-@pytest.mark.meta
-def test_whitelist_build(whitelist_build):
-    # ensure the binary exists and can run
-    try:
-        subp(f'{whitelist_build["bin"]} chaos path', stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError as e:
-        print(e.stdout)
-        raise

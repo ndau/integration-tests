@@ -38,12 +38,6 @@ def pytest_addoption(parser):
         help="Label to use for chaostool",
     )
     parser.addoption(
-        "--whitelist-label",
-        action="store",
-        default="master",
-        help="Label to use for whitelist",
-    )
-    parser.addoption(
         "--ndau-go-label",
         action="store",
         default="master",
@@ -105,9 +99,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(autouse=True, scope="session")
-def setup_teardown(
-    chaos_go_repo, chaostool_repo, whitelist_repo, ndau_go_repo, ndautool_repo
-):
+def setup_teardown(chaos_go_repo, chaostool_repo, ndau_go_repo, ndautool_repo):
     # Setup...
 
     yield
@@ -118,7 +110,6 @@ def setup_teardown(
     for repo in (
         chaos_go_repo,
         chaostool_repo,
-        whitelist_repo,
         ndau_go_repo,
         ndautool_repo,
     ):
@@ -186,15 +177,6 @@ def chaostool_repo(request):
     """Return the path at which chaostool is available."""
     label = request.config.getoption("--chaostool-label")
     conf = load(chaostool_label=label)["chaostool"]
-    with go_repo(conf["repo"], conf["logical"], conf["label"]) as path:
-        yield path
-
-
-@pytest.fixture(scope="session")
-def whitelist_repo(request):
-    """Return the path at which whitelist is available."""
-    label = request.config.getoption("--whitelist-label")
-    conf = load(whitelist_label=label)["whitelist"]
     with go_repo(conf["repo"], conf["logical"], conf["label"]) as path:
         yield path
 
@@ -427,23 +409,6 @@ def chaostool_build(keeptemp, chaostool_repo):
         ) as bin_fp:
             run_localenv(f"go build -o {bin_fp.name} ./cmd/chaos")
             yield {"repo": chaostool_repo, "bin": bin_fp.name}
-
-
-@pytest.fixture(scope="session")
-def whitelist_build(keeptemp, whitelist_repo):
-    """
-    Build the ndwhitelist binary.
-
-    Note that this doesn't perform any configuration,
-    it just builds the binary.
-    """
-    with within(whitelist_repo):
-        run_localenv("dep ensure")
-        with NamedTemporaryFile(
-            prefix="whitelist-", dir="/tmp", delete=not keeptemp
-        ) as bin_fp:
-            run_localenv(f"go build -o {bin_fp.name} ./cmd/ndwhitelist")
-            yield {"repo": whitelist_repo, "bin": bin_fp.name}
 
 
 @pytest.fixture(scope="session")
