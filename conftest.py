@@ -107,12 +107,7 @@ def setup_teardown(chaos_go_repo, chaostool_repo, ndau_go_repo, ndautool_repo):
     # Teardown...
 
     # Wipe temp .kube directories after all tests complete.
-    for repo in (
-        chaos_go_repo,
-        chaostool_repo,
-        ndau_go_repo,
-        ndautool_repo,
-    ):
+    for repo in (chaos_go_repo, chaostool_repo, ndau_go_repo, ndautool_repo):
         with within(repo):
             run_localenv("rm -rf .kube")
 
@@ -1002,31 +997,27 @@ def set_addresses_in_toml(use_kub, ndau):
 
     conf_path = ndau("conf-path")
 
-    with open(conf_path, 'rt') as conf_fp:
+    with open(conf_path, "rt") as conf_fp:
         conf = toml.load(conf_fp)
 
     # If the entries are there already, we're done.
-    if ('rfe' in conf and conf['rfe']['address'] == constants.RFE_ADDRESS
-        and 'nnr' in conf and conf['nnr']['address'] == constants.NNR_ADDRESS
-        and 'cvc' in conf and conf['cvc']['address'] == constants.CVC_ADDRESS):
+    if (
+        "rfe" in conf
+        and conf["rfe"]["address"] == constants.RFE_ADDRESS
+        and "nnr" in conf
+        and conf["nnr"]["address"] == constants.NNR_ADDRESS
+        and "cvc" in conf
+        and conf["cvc"]["address"] == constants.CVC_ADDRESS
+    ):
         return
 
     # Write addresses and keys into the conf.
-    conf['rfe'] = {
-        'address': constants.RFE_ADDRESS,
-        'keys': [constants.RFE_KEY],
-    }
-    conf['nnr'] = {
-        'address': constants.NNR_ADDRESS,
-        'keys': [constants.NNR_KEY],
-    }
-    conf['cvc'] = {
-        'address': constants.CVC_ADDRESS,
-        'keys': [constants.CVC_KEY],
-    }
+    conf["rfe"] = {"address": constants.RFE_ADDRESS, "keys": [constants.RFE_KEY]}
+    conf["nnr"] = {"address": constants.NNR_ADDRESS, "keys": [constants.NNR_KEY]}
+    conf["cvc"] = {"address": constants.CVC_ADDRESS, "keys": [constants.CVC_KEY]}
 
     # Write the conf to the ndautool.toml file.
-    with open(conf_path, 'wt') as conf_fp:
+    with open(conf_path, "wt") as conf_fp:
         toml.dump(conf, conf_fp)
 
 
@@ -1038,38 +1029,42 @@ def set_bpc_in_toml(use_kub, ndau):
 
     conf_path = ndau("conf-path")
 
-    with open(conf_path, 'rt') as conf_fp:
+    with open(conf_path, "rt") as conf_fp:
         conf = toml.load(conf_fp)
 
     # If the entry is there already, we're done.
-    if 'accounts' in conf:
-        for i in range(len(conf['accounts'])):
-            if conf['accounts'][i]['address'] == constants.BPC_ADDRESS:
+    if "accounts" in conf:
+        for i in range(len(conf["accounts"])):
+            if conf["accounts"][i]["address"] == constants.BPC_ADDRESS:
                 return
 
     # Write addresses and keys into the conf.
-    conf['accounts'].append({
-        'name': 'bpc-operations',
-        'address': constants.BPC_ADDRESS,
-        'root': {
-            'path': "/",
-            'public': constants.BPC_ROOT_PUBLIC_KEY,
-            'private': constants.BPC_ROOT_PRIVATE_KEY,
-        },
-        'ownership': {
-            'path': "/44'/20036'/100/1",
-            'public': constants.BPC_OWNERSHIP_PUBLIC_KEY,
-            'private': constants.BPC_OWNERSHIP_PRIVATE_KEY,
-        },
-        'transfer': [{
-            'path': "/44'/20036'/2000/1",
-            'public': constants.BPC_VALIDATION_PUBLIC_KEY,
-            'private': constants.BPC_VALIDATION_PRIVATE_KEY,
-        }],
-    })
+    conf["accounts"].append(
+        {
+            "name": "bpc-operations",
+            "address": constants.BPC_ADDRESS,
+            "root": {
+                "path": "/",
+                "public": constants.BPC_ROOT_PUBLIC_KEY,
+                "private": constants.BPC_ROOT_PRIVATE_KEY,
+            },
+            "ownership": {
+                "path": "/44'/20036'/100/1",
+                "public": constants.BPC_OWNERSHIP_PUBLIC_KEY,
+                "private": constants.BPC_OWNERSHIP_PRIVATE_KEY,
+            },
+            "transfer": [
+                {
+                    "path": "/44'/20036'/2000/1",
+                    "public": constants.BPC_VALIDATION_PUBLIC_KEY,
+                    "private": constants.BPC_VALIDATION_PRIVATE_KEY,
+                }
+            ],
+        }
+    )
 
     # Write the conf to the ndautool.toml file.
-    with open(conf_path, 'wt') as conf_fp:
+    with open(conf_path, "wt") as conf_fp:
         toml.dump(conf, conf_fp)
 
 
@@ -1081,31 +1076,35 @@ def set_sysvar_in_toml(use_kub, chaos):
 
     conf_path = chaos("conf-path")
 
-    with open(conf_path, 'rt') as conf_fp:
+    with open(conf_path, "rt") as conf_fp:
         conf = toml.load(conf_fp)
 
     # If the entry is there already, we're done.
-    if 'identities' in conf:
-        for i in range(len(conf['identities'])):
-            if conf['identities'][i]['name'] == constants.SYSVAR_IDENTITY:
+    if "identities" in conf:
+        for i in range(len(conf["identities"])):
+            if conf["identities"][i]["name"] == constants.SYSVAR_IDENTITY:
                 return
 
     # Write addresses and keys into the conf.
-    conf['identities'].append({
-        'name': constants.SYSVAR_IDENTITY,
-        'chaos': {
-            'public': constants.SYSVAR_PUBLIC_KEY,
-            'private': constants.SYSVAR_PRIVATE_KEY,
-        },
-        'ndau': {
-            'address': constants.BPC_ADDRESS,
-            'keys': [{
-                'public': constants.BPC_VALIDATION_PUBLIC_KEY,
-                'private': constants.BPC_VALIDATION_PRIVATE_KEY,
-            }],
-        },
-    })
+    conf["identities"].append(
+        {
+            "name": constants.SYSVAR_IDENTITY,
+            "chaos": {
+                "public": constants.SYSVAR_PUBLIC_KEY,
+                "private": constants.SYSVAR_PRIVATE_KEY,
+            },
+            "ndau": {
+                "address": constants.BPC_ADDRESS,
+                "keys": [
+                    {
+                        "public": constants.BPC_VALIDATION_PUBLIC_KEY,
+                        "private": constants.BPC_VALIDATION_PRIVATE_KEY,
+                    }
+                ],
+            },
+        }
+    )
 
     # Write the conf to the chaostool.toml file.
-    with open(conf_path, 'wt') as conf_fp:
+    with open(conf_path, "wt") as conf_fp:
         toml.dump(conf, conf_fp)
