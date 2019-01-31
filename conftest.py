@@ -15,6 +15,7 @@ import subprocess
 from string import ascii_lowercase, digits
 import tempfile
 from tempfile import NamedTemporaryFile
+import toml
 
 from src.util.conf import load
 from src.util.repo import go_repo, within
@@ -1001,38 +1002,32 @@ def set_addresses_in_toml(use_kub, ndau):
 
     conf_path = ndau("conf-path")
 
+    with open(conf_path, 'rt') as conf_fp:
+        conf = toml.load(conf_fp)
+
     # If the entries are there already, we're done.
-    f = open(conf_path, "r")
-    conf_lines = f.readlines()
-    f.close()
-    if (
-        any(constants.RFE_ADDRESS in line for line in conf_lines)
-        and any(constants.NNR_ADDRESS in line for line in conf_lines)
-        and any(constants.CVC_ADDRESS in line for line in conf_lines)
-    ):
+    if ('rfe' in conf and conf['rfe']['address'] == constants.RFE_ADDRESS
+        and 'nnr' in conf and conf['nnr']['address'] == constants.NNR_ADDRESS
+        and 'cvc' in conf and conf['cvc']['address'] == constants.CVC_ADDRESS):
         return
 
-    # Write addresses and keys into ndautool.toml file.
-    f = open(conf_path, "a")
-    f.write("[rfe]\n")
-    f.write(f'  address = "{constants.RFE_ADDRESS}"\n')
-    f.write(f'  keys = ["{constants.RFE_KEY}"]\n')
-    f.write("\n")
-    f.write("[nnr]\n")
-    f.write(f'  address = "{constants.NNR_ADDRESS}"\n')
-    f.write(f'  keys = ["{constants.NNR_KEY}"]\n')
-    f.write("[cvc]\n")
-    f.write(f'  address = "{constants.CVC_ADDRESS}"\n')
-    f.write(f'  keys = ["{constants.CVC_KEY}"]\n')
-    f.close()
+    # Write addresses and keys into the conf.
+    conf['rfe'] = {
+        'address': constants.RFE_ADDRESS,
+        'keys': [constants.RFE_KEY],
+    }
+    conf['nnr'] = {
+        'address': constants.NNR_ADDRESS,
+        'keys': [constants.NNR_KEY],
+    }
+    conf['cvc'] = {
+        'address': constants.CVC_ADDRESS,
+        'keys': [constants.CVC_KEY],
+    }
 
-    # Make sure the addresses exist in ndautool.toml file.
-    f = open(conf_path, "r")
-    conf_lines = f.readlines()
-    f.close()
-    assert any(constants.RFE_ADDRESS in line for line in conf_lines)
-    assert any(constants.NNR_ADDRESS in line for line in conf_lines)
-    assert any(constants.CVC_ADDRESS in line for line in conf_lines)
+    # Write the conf to the ndautool.toml file.
+    with open(conf_path, 'wt') as conf_fp:
+        toml.dump(conf, conf_fp)
 
 
 @pytest.fixture(autouse=True)
@@ -1043,41 +1038,39 @@ def set_bpc_in_toml(use_kub, ndau):
 
     conf_path = ndau("conf-path")
 
-    # If the entries are there already, we're done.
-    f = open(conf_path, "r")
-    conf_lines = f.readlines()
-    f.close()
-    if any(constants.BPC_ADDRESS in line for line in conf_lines):
-        return
+    with open(conf_path, 'rt') as conf_fp:
+        conf = toml.load(conf_fp)
 
-    # Remove empty accounts list.
-    subp(r'sed -i {} -e "/accounts = \[\]/d" "{}"'.format("''", conf_path))
+    # If the entry is there already, we're done.
+    if 'accounts' in conf:
+        for i in range(len(conf['accounts'])):
+            if conf['accounts'][i]['address'] == constants.BPC_ADDRESS:
+                return
 
-    # Write addresses and keys into chaostool.toml file.
-    f = open(conf_path, "a")
-    f.write("[[accounts]]\n")
-    f.write('  name = "bpc-operations"\n')
-    f.write(f'  address = "{constants.BPC_ADDRESS}"\n')
-    f.write("  [accounts.root]\n")
-    f.write('    path = "/"\n')
-    f.write(f'    public = "{constants.BPC_ROOT_PUBLIC_KEY}"\n')
-    f.write(f'    private = "{constants.BPC_ROOT_PRIVATE_KEY}"\n')
-    f.write("  [accounts.ownership]\n")
-    f.write("    path = \"/44'/20036'/100/1\"\n")
-    f.write(f'    public = "{constants.BPC_OWNERSHIP_PUBLIC_KEY}"\n')
-    f.write(f'    private = "{constants.BPC_OWNERSHIP_PRIVATE_KEY}"\n')
-    f.write("\n")
-    f.write("  [[accounts.transfer]]\n")
-    f.write("    path = \"/44'/20036'/2000/1\"\n")
-    f.write(f'    public = "{constants.BPC_VALIDATION_PUBLIC_KEY}"\n')
-    f.write(f'    private = "{constants.BPC_VALIDATION_PRIVATE_KEY}"\n')
-    f.close()
+    # Write addresses and keys into the conf.
+    conf['accounts'].append({
+        'name': 'bpc-operations',
+        'address': constants.BPC_ADDRESS,
+        'root': {
+            'path': "/",
+            'public': constants.BPC_ROOT_PUBLIC_KEY,
+            'private': constants.BPC_ROOT_PRIVATE_KEY,
+        },
+        'ownership': {
+            'path': "/44'/20036'/100/1",
+            'public': constants.BPC_OWNERSHIP_PUBLIC_KEY,
+            'private': constants.BPC_OWNERSHIP_PRIVATE_KEY,
+        },
+        'transfer': [{
+            'path': "/44'/20036'/2000/1",
+            'public': constants.BPC_VALIDATION_PUBLIC_KEY,
+            'private': constants.BPC_VALIDATION_PRIVATE_KEY,
+        }],
+    })
 
-    # Make sure the addresses exist in ndautool.toml file.
-    f = open(conf_path, "r")
-    conf_lines = f.readlines()
-    f.close()
-    assert any(constants.BPC_ADDRESS in line for line in conf_lines)
+    # Write the conf to the ndautool.toml file.
+    with open(conf_path, 'wt') as conf_fp:
+        toml.dump(conf, conf_fp)
 
 
 @pytest.fixture(autouse=True)
@@ -1088,33 +1081,31 @@ def set_sysvar_in_toml(use_kub, chaos):
 
     conf_path = chaos("conf-path")
 
-    # If the entries are there already, we're done.
-    f = open(conf_path, "r")
-    conf_lines = f.readlines()
-    f.close()
-    if any(constants.BPC_ADDRESS in line for line in conf_lines):
-        return
+    with open(conf_path, 'rt') as conf_fp:
+        conf = toml.load(conf_fp)
 
-    # Remove empty identities list.
-    subp(r'sed -i {} -e "/identities = \[\]/d" "{}"'.format("''", conf_path))
+    # If the entry is there already, we're done.
+    if 'identities' in conf:
+        for i in range(len(conf['identities'])):
+            if conf['identities'][i]['name'] == constants.SYSVAR_IDENTITY:
+                return
 
-    # Write addresses and keys into chaostool.toml file.
-    f = open(conf_path, "a")
-    f.write("[[identities]]\n")
-    f.write(f'  name = "{constants.SYSVAR_IDENTITY}"\n')
-    f.write("  [identities.chaos]\n")
-    f.write(f'    public = "{constants.SYSVAR_PUBLIC_KEKY}"\n')
-    f.write(f'    private = "{constants.SYSVAR_PRIVATE_KEY}"\n')
-    f.write("  [identities.ndau]\n")
-    f.write(f'    address = "{constants.BPC_ADDRESS}"\n')
-    f.write("\n")
-    f.write("    [[identities.ndau.keys]]\n")
-    f.write(f'      public = "{constants.BPC_VALIDATION_PUBLIC_KEY}"\n')
-    f.write(f'      private = "{constants.BPC_VALIDATION_PRIVATE_KEY}"\n')
-    f.close()
+    # Write addresses and keys into the conf.
+    conf['identities'].append({
+        'name': constants.SYSVAR_IDENTITY,
+        'chaos': {
+            'public': constants.SYSVAR_PUBLIC_KEY,
+            'private': constants.SYSVAR_PRIVATE_KEY,
+        },
+        'ndau': {
+            'address': constants.BPC_ADDRESS,
+            'keys': [{
+                'public': constants.BPC_VALIDATION_PUBLIC_KEY,
+                'private': constants.BPC_VALIDATION_PRIVATE_KEY,
+            }],
+        },
+    })
 
-    # Make sure the addresses exist in ndautool.toml file.
-    f = open(conf_path, "r")
-    conf_lines = f.readlines()
-    f.close()
-    assert any(constants.BPC_ADDRESS in line for line in conf_lines)
+    # Write the conf to the chaostool.toml file.
+    with open(conf_path, 'wt') as conf_fp:
+        toml.dump(conf, conf_fp)
