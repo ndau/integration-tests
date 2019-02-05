@@ -671,9 +671,9 @@ def set_up_namespace(chaos):
 @pytest.fixture
 def rfe(ndau, ensure_post_genesis_tx_fees):
     """
-    Wrapper for ndau(f'rfe {amount} {account}') that ensures the RFE account
+    Wrapper for ndau(f"rfe {amount} {account}") that ensures the RFE account
     has ndau to spend on the RFE tx fee.  All integration tests wanting to RFE
-    funds to accounts should use this rfe() instead of ndau('rfe').
+    funds to accounts should use this rfe() instead of ndau("rfe").
     """
 
     def rf(amount, account, **kwargs):
@@ -684,6 +684,7 @@ def rfe(ndau, ensure_post_genesis_tx_fees):
         ensure_post_genesis_tx_fees()
 
         ndau(f"rfe {amount} {account}")
+        ndau(f"issue {amount}")
 
     return rf
 
@@ -830,6 +831,7 @@ def perform_genesis(
         #     BPC-Genesis-Network-Values-Review--AVmUBCdsg3E7LBUupn5GuB7aAg-U5qFm5bqpvATFAJj75B6b
         # Use ndau('rfe') instead of rfe() to avoid fixture recursion.
         ndau(f"rfe 10 -a {constants.RFE_ADDRESS}")
+        ndau(f"issue 10")
 
         # The RFE account should now have some ndau to spend on RFE transaction fees.
         account_data = json.loads(ndau(f"account query -a {constants.RFE_ADDRESS}"))
@@ -847,6 +849,7 @@ def perform_genesis(
         ndau_locked = 1_000_000
         # Use ndau('rfe') instead of rfe() to avoid fixture recursion.
         ndau(f"rfe {ndau_locked} {purchaser_account}")
+        ndau(f"issue {ndau_locked}")
 
         # Lock it for a long time to maximize EAI.
         lock_years = 3
@@ -859,6 +862,7 @@ def perform_genesis(
         ndau(f"account claim {node_account}")
         # Use ndau('rfe') instead of rfe() to avoid fixture recursion.
         ndau(f"rfe 1000 {node_account}")
+        ndau(f"issue 1000")
         node_account_percent = 0  # We'll get this from the EAIFeeTable.
 
         # Self-stake and register the node account to the node.
