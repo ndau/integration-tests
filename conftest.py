@@ -655,10 +655,15 @@ def set_up_namespace(chaos):
     """
 
     def rf(ns, **kwargs):
-        res = chaos(f"id new {ns}")
-        ns_b64 = res.split()[4]
+        chaos(f"id new {ns}")
         chaos(f"id copy-keys-from {ns}")
-        return ns_b64
+        res = chaos(f"id list")
+        lines = res.split("\n")
+        for line in lines:
+            data = line.split(" ")
+            if len(data) >= 2 and data[0] == ns:
+                return data[-1]
+        return None
 
     return rf
 
