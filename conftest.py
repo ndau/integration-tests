@@ -866,9 +866,10 @@ def perform_genesis(
         distribution_script = base64.b64encode(distribution_script_bytes).decode(
             "utf-8"
         )
-        ndau(
+        err_msg = ndau_no_error(
             f"account register-node {node_account} {rpc_address} {distribution_script}"
         )
+        assert err_msg == "" or err_msg.startswith("acct is already staked")
 
         # Delegate purchaser account to node account.
         ndau(f"account delegate {purchaser_account} {node_account}")
@@ -1041,7 +1042,7 @@ def set_bpc_in_toml(use_kub, ndau):
     # Write addresses and keys into the conf.
     conf["accounts"].append(
         {
-            "name": "bpc-operations",
+            "name": constants.BPC_ACCOUNT,
             "address": constants.BPC_ADDRESS,
             "root": {
                 "path": "/",
@@ -1090,8 +1091,8 @@ def set_sysvar_in_toml(use_kub, chaos):
         {
             "name": constants.SYSVAR_IDENTITY,
             "chaos": {
-                "public": constants.SYSVAR_PUBLIC_KEY,
-                "private": constants.SYSVAR_PRIVATE_KEY,
+                "public": constants.BPC_OWNERSHIP_PUBLIC_KEY,
+                "private": constants.BPC_OWNERSHIP_PRIVATE_KEY,
             },
             "ndau": {
                 "address": constants.BPC_ADDRESS,
