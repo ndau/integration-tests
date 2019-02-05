@@ -655,10 +655,14 @@ def set_up_namespace(chaos):
     """
 
     def rf(ns, **kwargs):
-        res = chaos(f"id new {ns}")
-        ns_b64 = res.split()[4]
+        chaos(f"id new {ns}")
         chaos(f"id copy-keys-from {ns}")
-        return ns_b64
+        res = chaos(f"id list")
+        for line in res.split("\n"):
+            data = line.split(" ")
+            if len(data) >= 2 and data[0] == ns:
+                return data[-1]
+        return None
 
     return rf
 
@@ -666,9 +670,10 @@ def set_up_namespace(chaos):
 @pytest.fixture
 def rfe(ndau, ensure_post_genesis_tx_fees):
     """
-    Wrapper for ndau(f'rfe {amount} {account}') that ensures the RFE account
+    Wrapper for ndau(f"rfe {amount} {account}") that ensures the RFE account
     has ndau to spend on the RFE tx fee.  All integration tests wanting to RFE
-    funds to accounts should use this rfe() instead of ndau('rfe').
+    funds to accounts should use this rfe() instead of ndau("rfe").
+    ndau(f"issue {amount}") is also done here after the rfe.
     """
 
     def rf(amount, account, **kwargs):
@@ -679,6 +684,7 @@ def rfe(ndau, ensure_post_genesis_tx_fees):
         ensure_post_genesis_tx_fees()
 
         ndau(f"rfe {amount} {account}")
+        ndau(f"issue {amount}")
 
     return rf
 
@@ -825,6 +831,7 @@ def perform_genesis(
         #     BPC-Genesis-Network-Values-Review--AVmUBCdsg3E7LBUupn5GuB7aAg-U5qFm5bqpvATFAJj75B6b
         # Use ndau('rfe') instead of rfe() to avoid fixture recursion.
         ndau(f"rfe 10 -a {constants.RFE_ADDRESS}")
+        ndau(f"issue 10")
 
         # The RFE account should now have some ndau to spend on RFE transaction fees.
         account_data = json.loads(ndau(f"account query -a {constants.RFE_ADDRESS}"))
@@ -842,6 +849,7 @@ def perform_genesis(
         ndau_locked = 1_000_000
         # Use ndau('rfe') instead of rfe() to avoid fixture recursion.
         ndau(f"rfe {ndau_locked} {purchaser_account}")
+        ndau(f"issue {ndau_locked}")
 
         # Lock it for a long time to maximize EAI.
         lock_years = 3
@@ -854,6 +862,7 @@ def perform_genesis(
         ndau(f"account claim {node_account}")
         # Use ndau('rfe') instead of rfe() to avoid fixture recursion.
         ndau(f"rfe 1000 {node_account}")
+        ndau(f"issue 1000")
         node_account_percent = 0  # We'll get this from the EAIFeeTable.
 
         # Self-stake and register the node account to the node.
@@ -866,9 +875,10 @@ def perform_genesis(
         distribution_script = base64.b64encode(distribution_script_bytes).decode(
             "utf-8"
         )
-        ndau(
+        err_msg = ndau_no_error(
             f"account register-node {node_account} {rpc_address} {distribution_script}"
         )
+        assert err_msg == "" or err_msg.startswith("acct is already staked")
 
         # Delegate purchaser account to node account.
         ndau(f"account delegate {purchaser_account} {node_account}")
@@ -1041,7 +1051,7 @@ def set_bpc_in_toml(use_kub, ndau):
     # Write addresses and keys into the conf.
     conf["accounts"].append(
         {
-            "name": "bpc-operations",
+            "name": constants.BPC_ACCOUNT,
             "address": constants.BPC_ADDRESS,
             "root": {
                 "path": "/",
@@ -1090,8 +1100,8 @@ def set_sysvar_in_toml(use_kub, chaos):
         {
             "name": constants.SYSVAR_IDENTITY,
             "chaos": {
-                "public": constants.SYSVAR_PUBLIC_KEY,
-                "private": constants.SYSVAR_PRIVATE_KEY,
+                "public": constants.BPC_OWNERSHIP_PUBLIC_KEY,
+                "private": constants.BPC_OWNERSHIP_PRIVATE_KEY,
             },
             "ndau": {
                 "address": constants.BPC_ADDRESS,

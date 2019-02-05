@@ -30,7 +30,7 @@ def test_create_id(chaos, random_string, set_up_account, set_up_namespace):
 
 def test_set_get(chaos, ndau, random_string, set_up_account, set_up_namespace):
     """`chaostool` can set a value and get it back later."""
-    _random_string = random_string()
+    _random_string = random_string("set-get")
     conf_path = ndau("conf-path")
     f = open(conf_path, "r")
     conf_lines = f.readlines()
