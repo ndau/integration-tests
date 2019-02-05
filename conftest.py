@@ -658,8 +658,7 @@ def set_up_namespace(chaos):
         chaos(f"id new {ns}")
         chaos(f"id copy-keys-from {ns}")
         res = chaos(f"id list")
-        lines = res.split("\n")
-        for line in lines:
+        for line in res.split("\n"):
             data = line.split(" ")
             if len(data) >= 2 and data[0] == ns:
                 return data[-1]
@@ -674,6 +673,7 @@ def rfe(ndau, ensure_post_genesis_tx_fees):
     Wrapper for ndau(f"rfe {amount} {account}") that ensures the RFE account
     has ndau to spend on the RFE tx fee.  All integration tests wanting to RFE
     funds to accounts should use this rfe() instead of ndau("rfe").
+    ndau(f"issue {amount}") is also done here after the rfe.
     """
 
     def rf(amount, account, **kwargs):
