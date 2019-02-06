@@ -228,7 +228,7 @@ def chaos_node_exists(use_kub, node_net):
             foo = subp(
                 cmd,
                 env={
-                    "KUBECONFIG": os.environ["KUBECONFIG"],
+                    "KUBECONFIG": os.environ.get("KUBECONFIG", ""),
                     "PATH": os.environ["PATH"],
                 },
                 stderr=subprocess.STDOUT,
@@ -321,7 +321,7 @@ def ndau_node_exists(use_kub, node_net):
             foo = subp(
                 cmd,
                 env={
-                    "KUBECONFIG": os.environ["KUBECONFIG"],
+                    "KUBECONFIG": os.environ.get("KUBECONFIG", ""),
                     "PATH": os.environ["PATH"],
                 },
                 stderr=subprocess.STDOUT,
