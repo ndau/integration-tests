@@ -162,14 +162,14 @@ def test_change_settlement_period(ndau, random_string, set_up_account):
     set_up_account(account)
     account_data = json.loads(ndau(f"account query {account}"))
     assert account_data["settlementSettings"] is not None
-    assert account_data["settlementSettings"]["Period"] == "t0s"
+    assert account_data["settlementSettings"]["period"] == "t0s"
 
     # ChangeSettlementPeriod
     period_months = 3
     ndau(f"account change-settlement-period {account} {period_months}m")
     account_data = json.loads(ndau(f"account query {account}"))
     assert account_data["settlementSettings"] is not None
-    assert account_data["settlementSettings"]["Period"] == "t3m"
+    assert account_data["settlementSettings"]["period"] == "t3m"
 
 
 def test_change_validation(ndau, random_string, set_up_account):
