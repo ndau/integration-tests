@@ -157,19 +157,28 @@ def test_lock_notify(ndau, random_string, set_up_account):
 def test_change_settlement_period(ndau, random_string, set_up_account):
     """Test ChangeSettlementPeriod transaction"""
 
-    # Set up an account.
+    # Pick something that we wouldn't ever use as a default.  That way, we can assert on the
+    # initial value is not this (rather than assserting on the default value, which would fail
+    # if we ever changed it).  We will then change the settlement period to this and assert.
+    new_period = "2m3dt5h7m11s"
+
+    # Set up a new account, which will have the default settlement period.
     account = random_string("settlement-period")
     set_up_account(account)
     account_data = json.loads(ndau(f"account query {account}"))
     assert account_data["settlementSettings"] is not None
-    assert account_data["settlementSettings"]["period"] == "t0s"
+    old_period = account_data["settlementSettings"]["period"]
+    assert old_period is not None
+    assert old_period != ""
+    assert old_period != new_period
+    assert account_data["settlementSettings"]["next"] is None
 
     # ChangeSettlementPeriod
-    period_months = 3
-    ndau(f"account change-settlement-period {account} {period_months}m")
+    ndau(f"account change-settlement-period {account} {new_period}")
     account_data = json.loads(ndau(f"account query {account}"))
     assert account_data["settlementSettings"] is not None
-    assert account_data["settlementSettings"]["period"] == "t3m"
+    assert account_data["settlementSettings"]["period"] == old_period
+    assert account_data["settlementSettings"]["next"] == new_period
 
 
 def test_change_validation(ndau, random_string, set_up_account):
