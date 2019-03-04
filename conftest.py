@@ -1109,6 +1109,7 @@ def set_sysvar_in_toml(use_kub, chaos):
             },
             "ndau": {
                 "address": constants.BPC_ADDRESS,
+                # The claim in set_bpc_in_toml() generates the validation keys we expect here.
                 "keys": [
                     {
                         "public": constants.BPC_VALIDATION_PUBLIC_KEY,
