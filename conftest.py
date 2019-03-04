@@ -1063,19 +1063,23 @@ def set_bpc_in_toml(use_kub, ndau):
                 "public": constants.BPC_OWNERSHIP_PUBLIC_KEY,
                 "private": constants.BPC_OWNERSHIP_PRIVATE_KEY,
             },
-            "transfer": [
-                {
-                    "path": "/44'/20036'/2000/1",
-                    "public": constants.BPC_VALIDATION_PUBLIC_KEY,
-                    "private": constants.BPC_VALIDATION_PRIVATE_KEY,
-                }
-            ],
+            # JSG don't manually enter keys, let the claim do it below
+            # "transfer": [
+            #     {
+            #         "path": "/44'/20036'/2000/1",
+            #         "public": constants.BPC_VALIDATION_PUBLIC_KEY,
+            #         "private": constants.BPC_VALIDATION_PRIVATE_KEY,
+            #     }
+            # ],
         }
     )
 
     # Write the conf to the ndautool.toml file.
     with open(conf_path, "wt") as conf_fp:
         toml.dump(conf, conf_fp)
+
+    # JSG claim bpc account so transfer keys are correct
+    ndau(f"account claim {constants.BPC_ACCOUNT}")
 
 
 @pytest.fixture(autouse=True)
