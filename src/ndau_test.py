@@ -262,7 +262,8 @@ def test_claim_child_account(ndau, random_string, set_up_account):
 
     # Declare a child account and claim it.
     child_account = random_string("claim-child")
-    ndau(f"account claim-child {parent_account} {child_account}")
+    settlement_period = "2m3dt5h7m11s"
+    ndau(f"account claim-child {parent_account} {child_account} -p={settlement_period}")
 
     # Ensure the child account was claimed properly.
     account_data = json.loads(ndau(f"account query {child_account}"))
@@ -270,6 +271,8 @@ def test_claim_child_account(ndau, random_string, set_up_account):
     assert len(account_data["validationKeys"]) == 1
     parent_address = account_data["parent"]
     assert account_data["progenitor"] == parent_address
+    assert account_data["settlementSettings"] is not None
+    assert account_data["settlementSettings"]["period"] == settlement_period
 
     # See that the parent/progenitor address matches that of the parent account.
     # Just ensuring the account query comes back non-empty is enough, since we use random names.
