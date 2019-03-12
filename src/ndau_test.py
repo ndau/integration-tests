@@ -253,8 +253,38 @@ def test_command_validator_change(ndau):
     assert new_voting_power_was_set
 
 
+def test_claim_child_account(ndau, random_string, set_up_account):
+    """Test ClaimChildAccount transaction"""
+
+    # Set up parent account.
+    parent_account = random_string("claim-parent")
+    set_up_account(parent_account)
+
+    # Declare a child account and claim it.
+    child_account = random_string("claim-child")
+    settlement_period = "2m3dt5h7m11s"
+    ndau(f"account claim-child {parent_account} {child_account} -p={settlement_period}")
+
+    # Ensure the child account was claimed properly.
+    account_data = json.loads(ndau(f"account query {child_account}"))
+    assert account_data["validationKeys"] is not None
+    assert len(account_data["validationKeys"]) == 1
+    parent_address = account_data["parent"]
+    assert account_data["progenitor"] == parent_address
+    assert account_data["settlementSettings"] is not None
+    assert account_data["settlementSettings"]["period"] == settlement_period
+
+    # See that the parent/progenitor address matches that of the parent account.
+    account_data = json.loads(ndau(f"account query -a {parent_address}"))
+    # This just proves that we get back non-degenerate account data, proving the parent exists.
+    assert len(account_data["validationKeys"]) > 0
+    # This parent account is the progenitor (both are null).
+    assert account_data["parent"] is None
+    assert account_data["progenitor"] is None
+
+
 def test_change_sysvar(ndau, ensure_pre_genesis_tx_fees, ensure_post_genesis_tx_fees):
-    "Test that changing a system variable doesn't kill the blockchain"
+    """Test that changing a system variable doesn't kill the blockchain"""
     ensure_pre_genesis_tx_fees()
     ensure_post_genesis_tx_fees()
     ndau("info")
