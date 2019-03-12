@@ -275,8 +275,9 @@ def test_claim_child_account(ndau, random_string, set_up_account):
     assert account_data["settlementSettings"]["period"] == settlement_period
 
     # See that the parent/progenitor address matches that of the parent account.
-    # Just ensuring the account query comes back non-empty is enough, since we use random names.
     account_data = json.loads(ndau(f"account query -a {parent_address}"))
+    # This just proves that we get back non-degenerate account data, proving the parent exists.
+    assert len(account_data["validationKeys"]) > 0
     # This parent account is the progenitor (both are null).
     assert account_data["parent"] is None
     assert account_data["progenitor"] is None
