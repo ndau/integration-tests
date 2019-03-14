@@ -294,12 +294,11 @@ def test_svi_and_account_attributes(ndau, ndau_no_error, chaos, rfe):
     """Test setting svi and AccountAttributes system variables"""
 
     # Set up the AccountAttributes system variable in the svi map.
-    sysvar = "AccountAttributes"
-    sysvar_b64 = base64.b64encode(bytes(sysvar.encode())).decode("utf-8")
+    name_b64 = base64.b64encode(bytes(constants.ACCOUNT_ATTRIBUTES_KEY.encode())).decode("utf-8")
     svi_json = json.loads(chaos("get sysvar svi -m"))
-    svi_json[sysvar] = {
-        "Current":  [constants.SYSVAR_NAMESPACE, sysvar_b64],
-        "Future":   [constants.SYSVAR_NAMESPACE, sysvar_b64],
+    svi_json[constants.ACCOUNT_ATTRIBUTES_KEY] = {
+        "Current":  [constants.SYSVAR_NAMESPACE_B64, name_b64],
+        "Future":   [constants.SYSVAR_NAMESPACE_B64, name_b64],
         "ChangeOn": 0,
     }
     svi = json.dumps(svi_json)
@@ -308,7 +307,7 @@ def test_svi_and_account_attributes(ndau, ndau_no_error, chaos, rfe):
 
     # Clear the account_attributes if there are any, so we can claim the elephant account below.
     account_attributes = '{}'
-    chaos(f"set sysvar AccountAttributes --value-json '{account_attributes}'")
+    chaos(f"set sysvar {constants.ACCOUNT_ATTRIBUTES_KEY} --value-json '{account_attributes}'")
 
     # Set up the elephant account as an exchange account.
     account = "elephant-test"
@@ -319,7 +318,7 @@ def test_svi_and_account_attributes(ndau, ndau_no_error, chaos, rfe):
 
     # Make it an exchange account.
     account_attributes = '{"ndaegwggj8qv7tqccvz6ffrthkbnmencp9t2y4mn89gdq3yk":{"x":{}}}'
-    chaos(f"set sysvar AccountAttributes --value-json '{account_attributes}'")
+    chaos(f"set sysvar {constants.ACCOUNT_ATTRIBUTES_KEY} --value-json '{account_attributes}'")
 
     # One of the rules of exchange accounts is that you cannot lock them.
     # Testing this means we've verified that the AccountAttributes in svi is set up properly.

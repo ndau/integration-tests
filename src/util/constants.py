@@ -10,18 +10,19 @@ LOCALNET1_CHAOS_RPC = 26672
 LOCALNET1_NDAU_RPC  = 26673
 
 # The identity that the chaos tool uses to map to the system namespace for gets and sets.
-SYSVAR_IDENTITY = 'sysvar'
-BPC_ACCOUNT = 'bpc-operations'
-SYSVAR_NAMESPACE = "A2etqqaA3qQExilg+ywQ4ElRsyoDJh9lR5A+Thg5PcTR"
+SYSVAR_IDENTITY      = 'sysvar'
+BPC_ACCOUNT          = 'bpc-operations'
+SYSVAR_NAMESPACE_B64 = "A2etqqaA3qQExilg+ywQ4ElRsyoDJh9lR5A+Thg5PcTR"
 
 # Sysvar keys.
+ACCOUNT_ATTRIBUTES_KEY     = "AccountAttributes"
 EAI_FEE_TABLE_KEY          = 'EAIFeeTable'
 TRANSACTION_FEE_SCRIPT_KEY = 'TransactionFeeScript'
 
 # For use when changing tx fees throughout the integration tests.
-ZERO_FEE_SCRIPT            = '"oAAgiA=="'
-ONE_NAPU_FEE_SCRIPT        = '"oAAaiA=="'
-ONE_NAPU_FEE               = 1
+ZERO_FEE_SCRIPT     = '"oAAgiA=="'
+ONE_NAPU_FEE_SCRIPT = '"oAAaiA=="'
+ONE_NAPU_FEE        = 1
 
 # These must match the genesis files.  Localnet, devnet and testnet all use the same values.
 RFE_ADDRESS = 'ndmfgnz9qby6nyi35aadjt9nasjqxqyd4vrswucwfmceqs3y'
