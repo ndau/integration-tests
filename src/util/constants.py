@@ -12,6 +12,7 @@ LOCALNET1_NDAU_RPC  = 26673
 # The identity that the chaos tool uses to map to the system namespace for gets and sets.
 SYSVAR_IDENTITY = 'sysvar'
 BPC_ACCOUNT = 'bpc-operations'
+SYSVAR_NAMESPACE = "A2etqqaA3qQExilg+ywQ4ElRsyoDJh9lR5A+Thg5PcTR"
 
 # Sysvar keys.
 EAI_FEE_TABLE_KEY          = 'EAIFeeTable'
