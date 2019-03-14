@@ -294,11 +294,13 @@ def test_svi_and_account_attributes(ndau, ndau_no_error, chaos, rfe):
     """Test setting svi and AccountAttributes system variables"""
 
     # Set up the AccountAttributes system variable in the svi map.
-    name_b64 = base64.b64encode(bytes(constants.ACCOUNT_ATTRIBUTES_KEY.encode())).decode("utf-8")
+    name_b64 = base64.b64encode(
+        bytes(constants.ACCOUNT_ATTRIBUTES_KEY.encode())
+    ).decode("utf-8")
     svi_json = json.loads(chaos("get sysvar svi -m"))
     svi_json[constants.ACCOUNT_ATTRIBUTES_KEY] = {
-        "Current":  [constants.SYSVAR_NAMESPACE_B64, name_b64],
-        "Future":   [constants.SYSVAR_NAMESPACE_B64, name_b64],
+        "Current": [constants.SYSVAR_NAMESPACE_B64, name_b64],
+        "Future": [constants.SYSVAR_NAMESPACE_B64, name_b64],
         "ChangeOn": 0,
     }
     svi = json.dumps(svi_json)
@@ -306,20 +308,29 @@ def test_svi_and_account_attributes(ndau, ndau_no_error, chaos, rfe):
     chaos(f"set sysvar svi --value-json '{svi}' --value-json-types '{type_hints}'")
 
     # Clear the account_attributes if there are any, so we can claim the elephant account below.
-    account_attributes = '{}'
-    chaos(f"set sysvar {constants.ACCOUNT_ATTRIBUTES_KEY} --value-json '{account_attributes}'")
+    account_attributes = "{}"
+    chaos(
+        f"set sysvar {constants.ACCOUNT_ATTRIBUTES_KEY} --value-json '{account_attributes}'"
+    )
 
     # Set up the elephant account as an exchange account.
     account = "elephant-test"
     ndau_no_error(f"account destroy {account} --force")
-    ndau(f"account recover {account} elephant elephant elephant elephant elephant elephant elephant elephant elephant elephant elephant elephant")
-    rfe(10, account) # Give the account some ndau to pay for the claim transaction.
+    ndau(
+        f"account recover {account} elephant elephant elephant elephant elephant elephant elephant elephant elephant elephant elephant elephant"
+    )
+    rfe(10, account)  # Give the account some ndau to pay for the claim transaction.
     ndau(f"account claim {account}")
 
     # Make it an exchange account.
     account_attributes = '{"ndaegwggj8qv7tqccvz6ffrthkbnmencp9t2y4mn89gdq3yk":{"x":{}}}'
-    chaos(f"set sysvar {constants.ACCOUNT_ATTRIBUTES_KEY} --value-json '{account_attributes}'")
+    chaos(
+        f"set sysvar {constants.ACCOUNT_ATTRIBUTES_KEY} --value-json '{account_attributes}'"
+    )
 
     # One of the rules of exchange accounts is that you cannot lock them.
     # Testing this means we've verified that the AccountAttributes in svi is set up properly.
-    assert ndau_no_error("account lock elephant-test 2d") == "Cannot lock exchange accounts"
+    assert (
+        ndau_no_error("account lock elephant-test 2d")
+        == "Cannot lock exchange accounts"
+    )
