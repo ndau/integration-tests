@@ -1,7 +1,7 @@
 """
 Define pytest fixtures.
 
-These fixtures configure and run the chaos chain tools.
+These fixtures configure and run the chain and tools.
 """
 
 import base64
@@ -25,18 +25,6 @@ import src.util.constants as constants
 
 def pytest_addoption(parser):
     """See https://docs.pytest.org/en/latest/example/simple.html."""
-    parser.addoption(
-        "--chaos-go-label",
-        action="store",
-        default="master",
-        help="Label to use for chaos-go",
-    )
-    parser.addoption(
-        "--chaostool-label",
-        action="store",
-        default="master",
-        help="Label to use for chaostool",
-    )
     parser.addoption(
         "--ndau-go-label",
         action="store",
@@ -99,7 +87,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(autouse=True, scope="session")
-def setup_teardown(chaos_go_repo, chaostool_repo, ndau_go_repo, ndautool_repo):
+def setup_teardown(ndau_go_repo, ndautool_repo):
     # Setup...
 
     yield
@@ -107,7 +95,7 @@ def setup_teardown(chaos_go_repo, chaostool_repo, ndau_go_repo, ndautool_repo):
     # Teardown...
 
     # Wipe temp .kube directories after all tests complete.
-    for repo in (chaos_go_repo, chaostool_repo, ndau_go_repo, ndautool_repo):
+    for repo in (ndau_go_repo, ndautool_repo):
         with within(repo):
             run_localenv("rm -rf .kube")
 
@@ -129,21 +117,6 @@ def get_ndauhome_dir(use_kub, keeptemp):
 
 
 @pytest.fixture(scope="session")
-def get_chaos_tmhome_dir(use_kub, keeptemp):
-    if use_kub:
-        tmhome_dir = tempfile.mkdtemp(prefix="tmhome-", dir="/tmp")
-    else:
-        # Use the local tm home directory that's already there, set up by the localnet.
-        tmhome_dir = os.path.expanduser("~/.localnet/data/tendermint-chaos-0")
-        # Make sure it's really there.  If it isn't, the user hasn't
-        # set up a local server.
-        assert os.path.isdir(tmhome_dir)
-    yield tmhome_dir
-    if use_kub and not keeptemp:
-        shutil.rmtree(tmhome_dir, True)
-
-
-@pytest.fixture(scope="session")
 def get_ndau_tmhome_dir(use_kub, keeptemp):
     if use_kub:
         tmhome_dir = tempfile.mkdtemp(prefix="tmhome-", dir="/tmp")
@@ -156,24 +129,6 @@ def get_ndau_tmhome_dir(use_kub, keeptemp):
     yield tmhome_dir
     if use_kub and not keeptemp:
         shutil.rmtree(tmhome_dir, True)
-
-
-@pytest.fixture(scope="session")
-def chaos_go_repo(request):
-    """Return the path at which chaos-go is available."""
-    label = request.config.getoption("--chaos-go-label")
-    conf = load(chaos_go_label=label)["chaos-go"]
-    with go_repo(conf["repo"], conf["logical"], conf["label"]) as path:
-        yield path
-
-
-@pytest.fixture(scope="session")
-def chaostool_repo(request):
-    """Return the path at which chaostool is available."""
-    label = request.config.getoption("--chaostool-label")
-    conf = load(chaostool_label=label)["chaostool"]
-    with go_repo(conf["repo"], conf["logical"], conf["label"]) as path:
-        yield path
 
 
 @pytest.fixture(scope="session")
@@ -192,99 +147,6 @@ def ndautool_repo(request):
     conf = load(ndautool_label=label)["ndautool"]
     with go_repo(conf["repo"], conf["logical"], conf["label"]) as path:
         yield path
-
-
-@pytest.fixture(scope="session")
-def chaos_node_build(chaos_go_repo, get_ndauhome_dir, get_chaos_tmhome_dir):
-    """
-    Build a single chaos node.
-
-    Because chaos nodes are stateful, we need to init/run/reset them for
-    every test to ensure that the tests each have clean slates. However,
-    we only need to actually build the project once per test session.
-
-    That's what this fixture does.
-    """
-    ndauhome = get_ndauhome_dir
-    tmhome = get_chaos_tmhome_dir
-    print(f"build ndauhome: {ndauhome}")
-    print(f"build tmhome: {tmhome}")
-    with within(chaos_go_repo):
-        yield {"repo": chaos_go_repo, "ndauhome": ndauhome, "tmhome": tmhome}
-
-
-@pytest.fixture
-def chaos_node_exists(use_kub, node_net):
-    """
-    Check if we can communicate with chaos node.
-
-    Because chaos nodes are stateful, we need to init/run/reset them for
-    every test. This fixture accomplishes that.
-    """
-
-    def run_cmd(cmd, **kwargs):
-        print(f"cmd: {cmd}")
-        try:
-            foo = subp(
-                cmd,
-                env={
-                    "KUBECONFIG": os.environ.get("KUBECONFIG", ""),
-                    "PATH": os.environ["PATH"],
-                },
-                stderr=subprocess.STDOUT,
-                **kwargs,
-            )
-            return foo
-        except subprocess.CalledProcessError as e:
-            print("--STDOUT--")
-            print(e.stdout)
-            print("--RETURN CODE--")
-            print(e.returncode)
-
-            raise
-
-    print("chaos node exists")
-    if use_kub:
-        address = run_cmd(
-            "kubectl get nodes -o "
-            "jsonpath='{.items[*].status.addresses[?(@.type==\"ExternalIP\")].address}'"
-            ' | tr " " "\n" | head -n 1 | tr -d "[:space:]"'
-        )
-        nodenet0_rpc = run_cmd(
-            "kubectl get service --namespace default -o "
-            "jsonpath='{.spec.ports[?(@.name==\"rpc\")].nodePort}' "
-            + node_net
-            + "-0-nodegroup-chaos-tendermint-service"
-        )
-        nodenet1_rpc = run_cmd(
-            "kubectl get service --namespace default -o "
-            "jsonpath='{.spec.ports[?(@.name==\"rpc\")].nodePort}' "
-            + node_net
-            + "-1-nodegroup-chaos-tendermint-service"
-        )
-    else:
-        address = "localhost"
-        nodenet0_rpc = str(constants.LOCALNET0_CHAOS_RPC)
-        nodenet1_rpc = str(constants.LOCALNET1_CHAOS_RPC)
-    print(f"address: {address}")
-    print(f"nodenet0_rpc: {nodenet0_rpc}")
-    print(f"nodenet1_rpc: {nodenet1_rpc}")
-    nodenet0_res = run_cmd(f"curl -s http://{address}:{nodenet0_rpc}/status")
-    nodenet1_res = run_cmd(f"curl -s http://{address}:{nodenet1_rpc}/status")
-    print(f"nodenet0_res: {nodenet0_res}")
-    print(f"nodenet1_res: {nodenet1_res}")
-    yield {
-        "address": address,
-        "nodenet0_rpc": nodenet0_rpc,
-        "nodenet1_rpc": nodenet1_rpc,
-    }
-
-
-@pytest.fixture
-def chaos_node(chaos_node_build):
-    """Wrapper that yields chaos_node_build."""
-    print("chaos_node fixture: yielding")
-    yield chaos_node_build
 
 
 @pytest.fixture(scope="session")
@@ -390,23 +252,6 @@ def run_localenv(cmd):
 
 
 @pytest.fixture(scope="session")
-def chaostool_build(keeptemp, chaostool_repo):
-    """
-    Build the chaos tool.
-
-    Note that this doesn't perform any configuration;
-    it just builds the binary.
-    """
-    with within(chaostool_repo):
-        run_localenv("dep ensure")
-        with NamedTemporaryFile(
-            prefix="chaostool-", dir="/tmp", delete=not keeptemp
-        ) as bin_fp:
-            run_localenv(f"go build -o {bin_fp.name} ./cmd/chaos")
-            yield {"repo": chaostool_repo, "bin": bin_fp.name}
-
-
-@pytest.fixture(scope="session")
 def ndautool_build(keeptemp, ndautool_repo):
     """
     Build the ndau tool.
@@ -421,41 +266,6 @@ def ndautool_build(keeptemp, ndautool_repo):
         ) as bin_fp:
             run_localenv(f"go build -o {bin_fp.name} ./cmd/ndau")
             yield {"repo": ndautool_repo, "bin": bin_fp.name}
-
-
-@pytest.fixture
-def chaos_node_and_tool(
-    chaos_node, chaostool_build, chaos_node_exists, ndau_node_exists
-):
-    """
-    Run a chaos node, and configure the chaos tool to connect to it.
-
-    This necessarily includes the chaos node; depend only on this fixture,
-    not on this plus chaos_node.
-    """
-    env = {
-        "TMHOME": chaos_node["tmhome"],
-        "NDAUHOME": chaos_node["ndauhome"],
-        "PATH": os.environ["PATH"],
-    }
-
-    # Localnet already has the conf set up.
-    if use_kub:
-        address = (
-            "http://"
-            + chaos_node_exists["address"]
-            + ":"
-            + chaos_node_exists["nodenet0_rpc"]
-        )
-        address_ndau = (
-            "http://"
-            + ndau_node_exists["address"]
-            + ":"
-            + ndau_node_exists["nodenet0_rpc"]
-        )
-        subp(f'{chaostool_build["bin"]} conf {address} --ndau {address_ndau}', env=env)
-
-    return {"node": chaos_node, "tool": chaostool_build, "env": env}
 
 
 @pytest.fixture
@@ -486,29 +296,6 @@ def ndau_node_and_tool(ndau_node, ndautool_build, ndau_node_exists):
 
 
 @pytest.fixture
-def chaos(chaos_node_and_tool):
-    """
-    Fixture providing a chaos function.
-
-    This function calls the chaos command in a configured environment.
-    """
-
-    def rf(cmd, **kwargs):
-        try:
-            return subp(
-                f'{chaos_node_and_tool["tool"]["bin"]} {cmd}',
-                env=chaos_node_and_tool["env"],
-                stderr=subprocess.STDOUT,
-                **kwargs,
-            )
-        except subprocess.CalledProcessError as e:
-            print(e.stdout)
-            raise
-
-    return rf
-
-
-@pytest.fixture
 def ndau(ndau_node_and_tool):
     """
     Fixture providing a ndau function.
@@ -532,29 +319,6 @@ def ndau(ndau_node_and_tool):
 
 
 @pytest.fixture
-def chaos_no_error(chaos_node_and_tool):
-    """
-    Fixture providing a chaos function.
-
-    This function calls the chaos command in a configured environment.
-    """
-
-    def rf(cmd, **kwargs):
-        try:
-            return subp(
-                f'{chaos_node_and_tool["tool"]["bin"]} {cmd}',
-                env=chaos_node_and_tool["env"],
-                stderr=subprocess.STDOUT,
-                **kwargs,
-            )
-        except subprocess.CalledProcessError as e:
-            # Don't raise.  Callers use this to process the error message.
-            return e.stdout.rstrip("\n")
-
-    return rf
-
-
-@pytest.fixture
 def ndau_no_error(ndau_node_and_tool):
     """
     Fixture providing a ndau function.
@@ -572,27 +336,6 @@ def ndau_no_error(ndau_node_and_tool):
             )
         except subprocess.CalledProcessError as e:
             # Don't raise.  Callers use this to process the error message.
-            return e.stdout.rstrip("\n")
-
-    return rf
-
-
-@pytest.fixture
-def chaos_namespace_query(chaos_node_and_tool):
-    """
-    Similar to chaos('dump <ns>') that allows for a non-zero return value.
-    """
-
-    def rf(ns, **kwargs):
-        try:
-            return subp(
-                f'{chaos_node_and_tool["tool"]["bin"]} dump {ns}',
-                env=chaos_node_and_tool["env"],
-                stderr=subprocess.STDOUT,
-                **kwargs,
-            )
-        except subprocess.CalledProcessError as e:
-            # Don't raise.  Callers use this to see if accounts exist.
             return e.stdout.rstrip("\n")
 
     return rf
@@ -648,26 +391,6 @@ def set_up_account(ndau, rfe):
 
 
 @pytest.fixture
-def set_up_namespace(chaos):
-    """
-    Helper function for creating it as an identity for use as a namespace for
-    key-value pairs.
-    """
-
-    def rf(ns, **kwargs):
-        chaos(f"id new {ns}")
-        chaos(f"id copy-keys-from {ns}")
-        res = chaos(f"id list")
-        for line in res.split("\n"):
-            data = line.split(" ")
-            if len(data) >= 2 and data[0] == ns:
-                return data[-1]
-        return None
-
-    return rf
-
-
-@pytest.fixture
 def rfe(ndau, ensure_post_genesis_tx_fees):
     """
     Wrapper for ndau(f"rfe {amount} {account}") that ensures the RFE account
@@ -690,13 +413,12 @@ def rfe(ndau, ensure_post_genesis_tx_fees):
 
 
 @pytest.fixture
-def ensure_pre_genesis_tx_fees(chaos):
+def ensure_pre_genesis_tx_fees(ndau):
     """Ensure we have set up zero transaction fees for pre-genesis tests."""
 
     def rf(**kwargs):
-        sys_id = constants.SYSVAR_IDENTITY
         key = constants.TRANSACTION_FEE_SCRIPT_KEY
-        current_script = chaos(f"get {sys_id} {key} -m")
+        current_script = ndau(f"sysvar get {key}")[key]
         # If the tx fees are already zero, there is nothing to do.
         if current_script != constants.ZERO_FEE_SCRIPT:
             # Calling ensure_genesis() would cause a recursive fixture dependency.
@@ -710,26 +432,25 @@ def ensure_pre_genesis_tx_fees(chaos):
             # outside of our integration test suite.
             new_script = constants.ZERO_FEE_SCRIPT
             value = new_script.replace('"', r"\"")
-            chaos(f"set {sys_id} {key} --value-json {value}")
+            ndau(f"sysvar set {key} --value-json {value}")
 
             # Check that it worked.
-            current_script = chaos(f"get {sys_id} {key} -m")
+            ndau(f"sysvar get {key}")[key]
             assert current_script == new_script
 
     return rf
 
 
 @pytest.fixture
-def ensure_post_genesis_tx_fees(chaos, ensure_genesis):
+def ensure_post_genesis_tx_fees(ndau, ensure_genesis):
     """
     Ensure we have set up non-zero transaction fees for post-genesis tests.
     Returns True if we changed the tx fees.
     """
 
     def rf(**kwargs):
-        sys_id = constants.SYSVAR_IDENTITY
         key = constants.TRANSACTION_FEE_SCRIPT_KEY
-        current_script = chaos(f"get {sys_id} {key} -m")
+        current_script = ndau(f"sysvar get {key}")[key]
         # If the tx fees are aready set to one-napu per transaction,
         # there is nothing to do.
         if current_script != constants.ONE_NAPU_FEE_SCRIPT:
@@ -739,10 +460,10 @@ def ensure_post_genesis_tx_fees(chaos, ensure_genesis):
 
             new_script = constants.ONE_NAPU_FEE_SCRIPT
             value = new_script.replace('"', r"\"")
-            chaos(f"set {sys_id} {key} --value-json {value}")
+            ndau(f"sysvar set {key} --value-json {value}")
 
             # Check that it worked.
-            current_script = chaos(f"get {sys_id} {key} -m")
+            current_script = ndau(f"sysvar get {key}")[key]
             assert current_script == new_script
 
     return rf
@@ -786,7 +507,6 @@ def global_data():
 
 @pytest.fixture
 def perform_genesis(
-    chaos,
     ndau,
     ndau_no_error,
     ndau_node_exists,
@@ -883,9 +603,11 @@ def perform_genesis(
         # Delegate purchaser account to node account.
         ndau(f"account delegate {purchaser_account} {node_account}")
 
-        # Get the EAI fee table from chaos.
+        # Get the EAI fee table.
         eai_fee_table = json.loads(
-            chaos(f"get sysvar {constants.EAI_FEE_TABLE_KEY} -m")
+            ndau(f"sysvar get {constants.EAI_FEE_TABLE_KEY}")[
+                constants.EAI_FEE_TABLE_KEY
+            ]
         )
 
         # Build up an array of accounts with EAI fee percents associated with each.
@@ -1081,45 +803,3 @@ def set_bpc_in_toml(use_kub, ndau):
     # JSG claim bpc account so transfer keys are correct
     ndau(f"account claim {constants.BPC_ACCOUNT}")
 
-
-@pytest.fixture(autouse=True)
-def set_sysvar_in_toml(use_kub, chaos):
-    # When running on localnet, the rfe address is already present in the config.
-    if not use_kub:
-        return
-
-    conf_path = chaos("conf-path")
-
-    with open(conf_path, "rt") as conf_fp:
-        conf = toml.load(conf_fp)
-
-    # If the entry is there already, we're done.
-    if "identities" in conf:
-        for i in range(len(conf["identities"])):
-            if conf["identities"][i]["name"] == constants.SYSVAR_IDENTITY:
-                return
-
-    # Write addresses and keys into the conf.
-    conf["identities"].append(
-        {
-            "name": constants.SYSVAR_IDENTITY,
-            "chaos": {
-                "public": constants.BPC_OWNERSHIP_PUBLIC_KEY,
-                "private": constants.BPC_OWNERSHIP_PRIVATE_KEY,
-            },
-            "ndau": {
-                "address": constants.BPC_ADDRESS,
-                # The claim in set_bpc_in_toml() generates the validation keys we expect here.
-                "keys": [
-                    {
-                        "public": constants.BPC_VALIDATION_PUBLIC_KEY,
-                        "private": constants.BPC_VALIDATION_PRIVATE_KEY,
-                    }
-                ],
-            },
-        }
-    )
-
-    # Write the conf to the chaostool.toml file.
-    with open(conf_path, "wt") as conf_fp:
-        toml.dump(conf, conf_fp)
