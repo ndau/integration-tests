@@ -4,7 +4,8 @@ import subprocess
 
 
 def subp(
-    cmd, *,
+    cmd,
+    *,
     stdout=subprocess.PIPE,
     stderr=subprocess.DEVNULL,
     timeout=None,
@@ -26,10 +27,27 @@ def subp(
         stdout=stdout,
         stderr=stderr,
         timeout=timeout,
-        encoding='utf8',
+        encoding="utf8",
         env=env,
         **kwargs,
     )
     subr.check_returncode()
     if stdout == subprocess.PIPE:
         return subr.stdout.strip()
+
+
+def subpv(cmd, **kwargs):
+    try:
+        return subp(cmd, stderr=subprocess.STDOUT, **kwargs)
+    except subprocess.CalledProcessError as e:
+        print("--CMD--")
+        print(cmd)
+        print("--RETURN CODE--")
+        print(e.returncode)
+        print("--STDOUT--")
+        print(e.stdout)
+        print("--STDERR--")
+        print(e.stderr)
+
+        raise
+
