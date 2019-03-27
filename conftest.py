@@ -14,8 +14,9 @@ import subprocess
 import tempfile
 import toml
 
+from src.util import constants
 from src.util.subp import subp, subpv
-import src.util.constants as constants
+from src.util.tx_fees import ensure_tx_fees
 
 
 def pytest_addoption(parser):
@@ -38,12 +39,11 @@ def pytest_addoption(parser):
         default="localnet",
         help="which node net to use, e.g. devnet or localnet",
     )
-    parser.addoption(
-        "--testapi",
-        action="store_true",
-        default=False,
-        help="test communication with the ndau api",
-    )
+
+
+@pytest.fixture(scope="session")
+def verbose(request):
+    return request.config.getoption("verbose") > 0
 
 
 @pytest.fixture(scope="session")
@@ -73,11 +73,6 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "slow" in item.keywords:
                 item.add_marker(skip_slow)
-    if not config.getoption("--testapi"):
-        skip_api = pytest.mark.skip(reason="need --testapi option to test ndauapi")
-        for item in items:
-            if "api" in item.keywords:
-                item.add_marker(skip_api)
     if config.getoption("--skipmeta"):
         skip_meta = pytest.mark.skip(reason="skipped due to --skipmeta option")
         for item in items:
@@ -188,8 +183,6 @@ def ndau(ndautool_path, netconf, keeptemp, use_kub):
 
     # configure
     nd(f"conf {netconf['address']}:{netconf['nodenet0_rpc']}")
-    set_addresses_in_toml(use_kub, nd)
-    set_bpc_in_toml(use_kub, nd)
 
     try:
         yield nd
@@ -231,16 +224,28 @@ def ndau_suppress_err(ndau):
 
 
 @pytest.fixture(scope="session")
-def rfe_to_rfe(ndau):
+def rfe_to_rfe(ndau, ndautool_toml, verbose):
     """
     Ensure the RFE account has a non-zero balance
 
     This has session scope, so it should only run once for a given test run
+
+    Note: this depends on the RFE account having sufficient balance to perform
+    RFE transactions at the beginning of the test session. If the test session
+    opens with 0 RFE balance and non-zero tx fee, this fixture (and all tests
+    which depend on it) will necessarily fail.
     """
-    rfe_bal = json.loads(ndau(f"account query -a {constants.RFE_ADDRESS}"))["balance"]
-    if rfe_bal < 1e8:  # 1 ndau
-        ndau(f"rfe 10 -a {constants.RFE_ADDRESS}")
+    rfe_acct = ndautool_toml["rfe"]["address"]
+    rfe_bal = json.loads(ndau(f"account query -a {rfe_acct}"))["balance"]
+    must_r2r = rfe_bal < 1e8  # 1 ndau
+    if verbose:
+        print("rfe address:", rfe_acct)
+        print("    balance:", rfe_bal)
+        print("   must_r2r:", must_r2r)
+    if must_r2r:
+        ndau(f"rfe 10 -a {rfe_acct}")
         ndau("issue 10")
+    return must_r2r
 
 
 @pytest.fixture(scope="session")
@@ -258,20 +263,6 @@ def rfe_to_ssv(ndau, ndautool_toml, rfe_to_rfe):
 
 
 @pytest.fixture(scope="session")
-def set_up_account(ndau, rfe):
-    """
-    Helper function for creating a new account, rfe'ing to it, claiming it.
-    """
-
-    def rf(account, **kwargs):
-        ndau(f"account new {account}")
-        rfe(10, account)
-        ndau(f"account claim {account}")
-
-    return rf
-
-
-@pytest.fixture(scope="session")
 def rfe(ndau, rfe_to_rfe):
     """
     Wrapper for ndau(f"rfe {amount} {account}") that ensures the RFE'd amount
@@ -286,103 +277,27 @@ def rfe(ndau, rfe_to_rfe):
 
 
 @pytest.fixture(scope="session")
-def ensure_tx_fees(ndau, rfe_to_ssv):
-    """Ensure we have set up zero transaction fees for pre-genesis tests."""
+def set_up_account(ndau, rfe):
+    """
+    Helper function for creating a new account, rfe'ing to it, claiming it.
+    """
 
-    def rf(fee_script):
-        key = constants.TRANSACTION_FEE_SCRIPT_KEY
-        current_script = json.loads(ndau(f"sysvar get {key}"))[key]
-        # If the tx fees are already zero, there is nothing to do.
-        if current_script != fee_script.strip('"'):
-            # Calling ensure_genesis() would cause a recursive fixture dependency.
-            # We have no choice but to attempt this sysvar change regardless of
-            # current tx fees.
-            # If there are non-zero tx fees in place, then it's likely that the
-            # BPC has enough ndau to pay for the tx fee for this sysvar change,
-            # since it would have gotten funded when we performed genesis before
-            # we changed the fees to non-zero.  The only way it wouldn't is if
-            # we're testing against a blockchain that had its fees changed
-            # outside of our integration test suite.
-            new_script = fee_script.replace('"', r"\"")
-            ndau(f"sysvar set {key} --json {new_script}")
-
-            # Check that it worked.
-            current_script = json.loads(ndau(f"sysvar get {key}"))[key]
-            assert current_script == fee_script.strip('"')
+    def rf(account, recovery_phrase=None):
+        if recovery_phrase is None:
+            ndau(f"account new {account}")
+        else:
+            ndau(f"account recover {account} {recovery_phrase}")
+        rfe(10, account)
+        ndau(f"account claim {account}")
 
     return rf
 
 
-def set_addresses_in_toml(use_kub, ndau):
-    # When running on localnet, the rfe address is already present in the config.
-    if not use_kub:
-        return
-
-    conf_path = ndau("conf-path")
-
-    with open(conf_path, "rt") as conf_fp:
-        conf = toml.load(conf_fp)
-
-    # If the entries are there already, we're done.
-    if (
-        "rfe" in conf
-        and conf["rfe"]["address"] == constants.RFE_ADDRESS
-        and "nnr" in conf
-        and conf["nnr"]["address"] == constants.NNR_ADDRESS
-        and "cvc" in conf
-        and conf["cvc"]["address"] == constants.CVC_ADDRESS
-    ):
-        return
-
-    # Write addresses and keys into the conf.
-    conf["rfe"] = {"address": constants.RFE_ADDRESS, "keys": [constants.RFE_KEY]}
-    conf["nnr"] = {"address": constants.NNR_ADDRESS, "keys": [constants.NNR_KEY]}
-    conf["cvc"] = {"address": constants.CVC_ADDRESS, "keys": [constants.CVC_KEY]}
-
-    # Write the conf to the ndautool.toml file.
-    with open(conf_path, "wt") as conf_fp:
-        toml.dump(conf, conf_fp)
+@pytest.fixture
+def zero_tx_fees(ndau, rfe_to_ssv):
+    yield from ensure_tx_fees(ndau, rfe_to_ssv, constants.ZERO_FEE_SCRIPT)
 
 
-def set_bpc_in_toml(use_kub, ndau):
-    # When running on localnet, the rfe address is already present in the config.
-    if not use_kub:
-        return
-
-    conf_path = ndau("conf-path")
-
-    with open(conf_path, "rt") as conf_fp:
-        conf = toml.load(conf_fp)
-
-    # If the entry is there already, we're done.
-    if "accounts" in conf:
-        for i in range(len(conf["accounts"])):
-            if conf["accounts"][i]["address"] == constants.BPC_ADDRESS:
-                return
-
-    # Write addresses and keys into the conf.
-    conf["accounts"].append(
-        {
-            "name": constants.BPC_ACCOUNT,
-            "address": constants.BPC_ADDRESS,
-            "root": {
-                "path": "/",
-                "public": constants.BPC_ROOT_PUBLIC_KEY,
-                "private": constants.BPC_ROOT_PRIVATE_KEY,
-            },
-            "ownership": {
-                "path": "/44'/20036'/100/1",
-                "public": constants.BPC_OWNERSHIP_PUBLIC_KEY,
-                "private": constants.BPC_OWNERSHIP_PRIVATE_KEY,
-            },
-            # don't manually enter keys, let the claim do it below
-        }
-    )
-
-    # Write the conf to the ndautool.toml file.
-    with open(conf_path, "wt") as conf_fp:
-        toml.dump(conf, conf_fp)
-
-    # claim bpc account to set transfer keys
-    ndau(f"account claim {constants.BPC_ACCOUNT}")
-
+@pytest.fixture
+def nonzero_tx_fees(ndau, rfe_to_ssv):
+    yield from ensure_tx_fees(ndau, rfe_to_ssv, constants.ONE_NAPU_FEE_SCRIPT)

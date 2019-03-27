@@ -2,33 +2,20 @@
 Test that the fixtures we build work properly.
 """
 
-import subprocess
 import pytest
 
-from src.util.subp import subp
+from src.util.subp import subpv
 
 
-@pytest.mark.api
 @pytest.mark.meta
-def test_ndauapi(ndauapi_exists):
+def test_tm_status(netconf):
     # see https://tendermint.readthedocs.io/en/master/getting-started.html
-    try:
-        print(f'address: {ndauapi_exists["address"]}')
-
-        subp(
-            f'curl -s http://{ndauapi_exists["address"]}:'
-            f'{ndauapi_exists["nodenet0_rpc"]}/status'
-        )
-
-    except subprocess.CalledProcessError as e:
-        print("--STDOUT--")
-        print(e.stdout)
-        print("--RETURN CODE--")
-        print(e.returncode)
-        raise
+    subpv(f'curl -s http://{netconf["address"]}:' f'{netconf["nodenet0_rpc"]}/status')
 
 
 @pytest.mark.meta
 def test_ndau_node_connection(ndau):
+    # version check ensures we connect properly not just to TM but also to the
+    # remote node via its query ABCI cmd
     ndau("-v version check")
 

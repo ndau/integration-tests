@@ -24,14 +24,6 @@ ZERO_FEE_SCRIPT = '"oAAgiA=="'
 ONE_NAPU_FEE_SCRIPT = '"oAAaiA=="'
 ONE_NAPU_FEE = 1
 
-# These must match the genesis files.  Localnet, devnet and testnet all use the same values.
-RFE_ADDRESS = "ndmfgnz9qby6nyi35aadjt9nasjqxqyd4vrswucwfmceqs3y"
-RFE_KEY = "npvtayjadtcbictc27a55zyz66yb53ygn4cc9qgxm3m2x3wmnhfyrwkwipwupxeijsmazxir586bfpeuqncud6z72veb3zn5kd62myri589uit6ta4kas5def9ii"
-NNR_ADDRESS = "ndnf9ffbzhyf8mk7z5vvqc4quzz5i2exp5zgsmhyhc9cuwr4"
-NNR_KEY = "npvtayjadtcbiavi5k4g6jxwmnpt5cky7xpbkhsrt5ev757wssnb8u3d5wyw38ykgz2v4uwhug954qq6wv38jkrwdpp2pndia4hqif72ezv4wcinaiyhaiaapzaj"
-CVC_ADDRESS = "ndnf9ffbzhyf8mk7z5vvqc4quzz5i2exp5zgsmhyhc9cuwr4"
-CVC_KEY = "npvtayjadtcbiavi5k4g6jxwmnpt5cky7xpbkhsrt5ev757wssnb8u3d5wyw38ykgz2v4uwhug954qq6wv38jkrwdpp2pndia4hqif72ezv4wcinaiyhaiaapzaj"
-
 # BPC addresses and keys, created deterministically using the 12 eyes with account recovery.
 BPC_ADDRESS = "ndakj49v6nnbdq3yhnf8f2j6ivfzicedvfwtunckivfsw9qt"
 BPC_ROOT_PUBLIC_KEY = "npuba4jaftckeeb4eb3ur3ubmg38skak7bbinycna8dudjx8ka7emzjpx4bvpzp43daaaaaaaaaaaaak9srd4ru8uj3rsmxghk32jfmkjgqvrff2s6axjrqyyn9h7fetzr7rndpaec3k"
