@@ -132,18 +132,18 @@ def netconf(is_localnet, node_net):
         }
 
     return {
-        "address": subpv(
+        "address": subp(
             "kubectl get nodes -o "
             "jsonpath='{.items[*].status.addresses[?(@.type==\"ExternalIP\")].address}'"
             ' | tr " " "\n" | head -n 1 | tr -d "[:space:]"'
         ),
-        "nodenet0_rpc": subpv(
+        "nodenet0_rpc": subp(
             "kubectl get service --namespace default -o "
             "jsonpath='{.spec.ports[?(@.name==\"rpc\")].nodePort}' "
             + node_net
             + "-0-nodegroup-ndau-tendermint-service"
         ),
-        "nodenet1_rpc": subpv(
+        "nodenet1_rpc": subp(
             "kubectl get service --namespace default -o "
             "jsonpath='{.spec.ports[?(@.name==\"rpc\")].nodePort}' "
             + node_net
