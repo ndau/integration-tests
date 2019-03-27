@@ -2,6 +2,7 @@
 
 import base64
 import json
+import pytest
 from src.util import constants
 from src.util.random_string import random_string
 from time import sleep
@@ -432,3 +433,12 @@ def test_account_attributes(ndau, ndau_suppress_err, set_up_account, rfe_to_ssv)
     # set up properly.
     assert "InvalidTransaction" in ndau_suppress_err("account lock elephant-test 2d")
 
+
+@pytest.mark.skip(reason="sysvar history is not implemented")
+def test_sysvar_history(ndau):
+    """
+    Test system variable history over time.
+
+    Not currently implemented, so we can't do anything here.
+    """
+    pass
