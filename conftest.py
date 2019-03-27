@@ -127,8 +127,8 @@ def netconf(is_localnet, node_net):
     if is_localnet:
         return {
             "address": "localhost",
-            "nodenet0_rpc": str(constants.LOCALNET0_NDAU_RPC),
-            "nodenet1_rpc": str(constants.LOCALNET1_NDAU_RPC),
+            "nodenet0_rpc": str(constants.LOCALNET0_RPC),
+            "nodenet1_rpc": str(constants.LOCALNET1_RPC),
         }
 
     return {
