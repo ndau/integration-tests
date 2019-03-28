@@ -15,7 +15,7 @@ import tempfile
 import toml
 
 from src.util import constants
-from src.util.subp import subp, subpv
+from src.util.subp import subpv, ndenv
 from src.util.tx_fees import ensure_tx_fees
 
 
@@ -132,22 +132,25 @@ def netconf(is_localnet, node_net):
         }
 
     return {
-        "address": subp(
+        "address": subpv(
             "kubectl get nodes -o "
             "jsonpath='{.items[*].status.addresses[?(@.type==\"ExternalIP\")].address}'"
-            ' | tr " " "\n" | head -n 1 | tr -d "[:space:]"'
+            ' | tr " " "\n" | head -n 1 | tr -d "[:space:]"',
+            env=ndenv(),
         ),
-        "nodenet0_rpc": subp(
+        "nodenet0_rpc": subpv(
             "kubectl get service --namespace default -o "
             "jsonpath='{.spec.ports[?(@.name==\"rpc\")].nodePort}' "
             + node_net
-            + "-0-nodegroup-ndau-tendermint-service"
+            + "-0-nodegroup-ndau-tendermint-service",
+            env=ndenv(),
         ),
-        "nodenet1_rpc": subp(
+        "nodenet1_rpc": subpv(
             "kubectl get service --namespace default -o "
             "jsonpath='{.spec.ports[?(@.name==\"rpc\")].nodePort}' "
             + node_net
-            + "-1-nodegroup-ndau-tendermint-service"
+            + "-1-nodegroup-ndau-tendermint-service",
+            env=ndenv(),
         ),
     }
 
@@ -158,17 +161,9 @@ def ndau(ndautool_path, netconf, keeptemp, use_kub):
     Fixture providing a ndau function.
     """
 
-    # set up env
-    env = {}
-    for var in ("PATH", "HOME", "TMHOME", "NDAUHOME", "KUBECONFIG"):
-        if os.environ.get(var) is not None:
-            env[var] = os.environ[var]
-
     def nd(cmd, **kwargs):
         try:
-            return subp(
-                f"{ndautool_path} {cmd}", stderr=subprocess.STDOUT, env=env, **kwargs
-            )
+            return subpv(f"{ndautool_path} {cmd}", env=ndenv(), **kwargs)
         except subprocess.CalledProcessError as e:
             print(e.stdout)
             raise
