@@ -3,13 +3,12 @@ import shutil
 import subprocess
 from contextlib import contextmanager
 from tempfile import mkdtemp
-import pdb
 
 from src.util.subp import subp
 
 
 @contextmanager
-def go_repo(remote, local, label='master'):
+def go_repo(remote, local, label="master"):
     """
     Ensure a go repository exists in the desired branch at the local path.
 
@@ -19,22 +18,18 @@ def go_repo(remote, local, label='master'):
 
     Returns the full local path to the repository.
     """
-    output = subprocess.check_output(['go', 'env', 'GOPATH'])
-    gopath = output.decode('utf-8').rstrip()
+    output = subprocess.check_output(["go", "env", "GOPATH"])
+    gopath = output.decode("utf-8").rstrip()
     if len(gopath) == 0:
         raise Exception("go env GOPATH is empty")
-    if gopath.find(':') >= 0:
+    if gopath.find(":") >= 0:
         raise Exception("multi-directory GOPATH not supported")
-    with repo(
-        remote,
-        os.path.join(gopath, 'src', local),
-        label
-    ) as local_path:
+    with repo(remote, os.path.join(gopath, "src", local), label) as local_path:
         yield local_path
 
 
 @contextmanager
-def repo(remote, local=None, label='master', cleanup=True):
+def repo(remote, local=None, label="master", cleanup=True):
     """
     Ensure a repository exists in the desired branch.
 
@@ -51,35 +46,35 @@ def repo(remote, local=None, label='master', cleanup=True):
         local = mkdtemp()
     else:
         local = os.path.abspath(local)
-#    pdb.set_trace()
+    #    pdb.set_trace()
     if not os.path.exists(local):
         os.makedirs(os.path.dirname(local), exist_ok=True)
-        subp(f'git clone {remote} {local}')
+        subp(f"git clone {remote} {local}")
     elif len(os.listdir(local)) == 0:
         # directory exists but is empty
         os.rmdir(local)
-        subp(f'git clone {remote} {local}')
+        subp(f"git clone {remote} {local}")
     else:
         # directory exists and is not empty
         # is it a repository?
         try:
             with within(local):
-                subp('git status --porcelain')
-#            pdb.set_trace()
+                subp("git status --porcelain")
+        #            pdb.set_trace()
         except subprocess.CalledProcessError:
             # we can be pretty sure this isn't a repo
             raise Exception(f"'{local}' is not empty and not a git repo")
 
     try:
         with within(local):
-#            pdb.set_trace()
-            if len(subp('git status --porcelain')) == 0:
+            #            pdb.set_trace()
+            if len(subp("git status --porcelain")) == 0:
                 stashed = False
             else:
                 stashed = True
-#                subp('git stash push --include-untracked')
+            #                subp('git stash push --include-untracked')
 
-            current_branch = subp('git rev-parse --abbrev-ref HEAD')
+            current_branch = subp("git rev-parse --abbrev-ref HEAD")
             if label == current_branch:
                 ch_branch = False
             else:
@@ -97,14 +92,14 @@ def repo(remote, local=None, label='master', cleanup=True):
                     # )
                 if stashed:
                     try:
-#                        pdb.set_trace()
+                        #                        pdb.set_trace()
                         stashed = False
                         # subp(
                         #     'git stash pop',
                         #     stderr=subprocess.STDOUT,
                         # )
                     except subprocess.CalledProcessError as e:
-                        if 'No stash entries found' in e.stdout:
+                        if "No stash entries found" in e.stdout:
                             pass
                         else:
                             print(e.stdout)
@@ -119,11 +114,7 @@ def within(path):
     """Temporarily operate within another directory."""
     current = os.getcwd()
     os.chdir(path)
-    print(f'cd into: {path}')
-#    pdb.set_trace()
     try:
         yield
     finally:
-        print(f'cd back to: {current}')
         os.chdir(current)
-#        pdb.set_trace()

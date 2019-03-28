@@ -5,7 +5,13 @@ from src.util.repo import within
 from src.util.subp import subp
 
 
-def load(*, chaos_go_label=None, chaostool_label=None, ndau_go_label=None, ndautool_label=None):
+def load(
+    *,
+    chaos_go_label=None,
+    chaostool_label=None,
+    ndau_go_label=None,
+    ndautool_label=None,
+):
     """
     Load configuration data.
 
@@ -14,15 +20,13 @@ def load(*, chaos_go_label=None, chaostool_label=None, ndau_go_label=None, ndaut
     command line.
     """
     with within(os.path.dirname(os.path.abspath(__file__))):
-        conf_path = os.path.join(
-            subp('git rev-parse --show-toplevel'),
-            'conf.toml',
-        )
-    with open(conf_path, 'rt') as conf_fp:
+        conf_path = os.path.join(subp("git rev-parse --show-toplevel"), "conf.toml")
+    with open(conf_path, "rt") as conf_fp:
         conf = toml.load(conf_fp)
     locs = locals()
-    for repo in ('chaos_go', 'chaostool', 'ndau_go', 'ndautool'):
-        label = repo + '_label'
+    for repo in ("chaos_go", "chaostool", "ndau_go", "ndautool"):
+        label = repo + "_label"
         if locs[label] is not None:
-            conf[repo.replace('_', '-')]['label'] = locs[label]
+            conf[repo.replace("_", "-")]["label"] = locs[label]
     return conf
+

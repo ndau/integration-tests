@@ -14,7 +14,7 @@ These tools are intended for different audiences and will likely be running on s
 1. Install `pipenv`: `pip3 install pipenv`
 1. Install `pytest`: `pip3 install pytest`
 1. Install `toml`: `pip3 install toml`
-1. Set up Kubernetes tools
+1. If you intend to run on non-localnet: set up Kubernetes tools
     1. Install `kubectl`: `brew install kubernetes-cli`
     1. Create the directory `~/.kube`
     1. Get the `deploy_security` tarball from Oneiro's 1password account
