@@ -1,13 +1,5 @@
 # Integration Tests
 
-Testing the chaosnode system in its entirety is relatively complicated, because it is a system of many interlocking parts:
-
-- The heart is the node itself, [`chaos-go`](https://us-east-1.console.aws.amazon.com/codecommit/home?region=us-east-1#/repository/chaos-go/browse/HEAD/--/). This is at simplest a docker-compose service orchestrating (currently) three separate executables, though it also includes a tool with which a many-node configuration can be generated for test purposes.
-
-- The primary interface with `chaos-go` is the [`chaos`](https://us-east-1.console.aws.amazon.com/codecommit/home?region=us-east-1#/repository/chaostool/browse/HEAD/--/) command, which is both a CLI application and a go library (`tool`) with which to interface with the chaos chain.
-
-These tools are intended for different audiences and will likely be running on separte machines in production. This makes testing their interactions in a realistic way a non-trivial proposition.
-
 ## Getting Started
 
 1. Install [python3.6 or later](https://www.python.org/downloads/)
@@ -25,7 +17,7 @@ These tools are intended for different audiences and will likely be running on s
     1. Add `export KUBECONFIG=~/.kube/dev.yaml` to your `.bash_profile` and restart your Terminal
     1. Test the Kubernetes tools install by running `kubectl get nodes`
 1. Make sure you have your `NDAUHOME` environment variable set.  e.g. when running against localnet, you could use `export NDAUHOME=$HOME/.localnet/data/ndau-0`
-1. Clone this repo into `~/go/src/github.com/oneiro-ndev` so that it is next to the `chaos` and `ndau` repos
+1. Clone this repo into `~/go/src/github.com/oneiro-ndev` so that it is next to the `ndau` repo
 1. `cd` into the repo root
 1. Install dependencies: `pipenv sync`
 1. Load the environment: `pipenv shell`
@@ -34,7 +26,6 @@ These tools are intended for different audiences and will likely be running on s
 
 Tests are handled via the `pytest` unit-testing tool. To run the entire test suite, simply execute the `pytest -v` command from the repo root; it'll take care of everything else. If you'd like the testing to stop at failure X, run the command `pytest -v --maxfail=X`.  If you'd like to run a particular test, run the command `pytest test_mod.py::test_func`.  There are several command-line flags available:
 
-- `--chaos-go-label` and `--chaostool-label` set the label of the specified repository to build and test. A label can be anything that git accepts as a label: a short hash, full hash, branch name, and tag are all valid options. All of these default to `master`.
 - `--runslow` if set runs tests which have been marked as slow. None of these tests are particularly speedy due to the heavy fixtures in play, but some are particularly poky.
 - `--skipmeta` if set skips metatests. Metatests are tests which verify that the fixtures in use to fetch and build the various dependencies are all working properly.
 - `--keeptemp` if set keeps temp files and directories around to help debug test failures.  Normally all files and directories created during testing will be removed at the end of the tests.  Temporary files will normally be named in the form of /tmp/XXXXXX_YYYYYYYY, where X's are the tool or component name, and Y's are a randomly generated string.
@@ -43,21 +34,3 @@ Tests are handled via the `pytest` unit-testing tool. To run the entire test sui
 ## Testing Strategy
 
 Tests are written in Python using [pytest](https://docs.pytest.org/en/latest/) and [hypothesis](https://hypothesis.readthedocs.io/en/latest/).
-
-## Tests
-
-### Single validator node
-
-- [X] `chaostool` can connect to `chaos-go` and get status
-- [X] `chaostool` can set a value and get it back later
-- [X] `chaostool` can remove a value
-- [X] `chaostool` can list all namespaces
-- [X] `chaostool` can dump all k-v pairs from a given namespace
-- [X] `chaostool` can set a value, and a different instance of `chaostool` can retrieve it
-- [X] `chaostool` can set a value, and a different instance of `chaostool` cannot overwrite it (i.e. namespaces work)
-- [X] `chaostool` can list the history of a value
-
-### Dynamic nodes
-
-- [ ] a new node can join a running network
-- [ ] a node dynamically added to a network can have voting power granted
