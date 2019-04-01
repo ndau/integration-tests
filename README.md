@@ -24,6 +24,7 @@ These tools are intended for different audiences and will likely be running on s
        - `current-context: dev.cluster.ndau.tech`
     1. Add `export KUBECONFIG=~/.kube/dev.yaml` to your `.bash_profile` and restart your Terminal
     1. Test the Kubernetes tools install by running `kubectl get nodes`
+1. Make sure you have your `NDAUHOME` environment variable set.  e.g. when running against localnet, you could use `export NDAUHOME=$HOME/.localnet/data/ndau-0`
 1. Clone this repo into `~/go/src/github.com/oneiro-ndev` so that it is next to the `chaos` and `ndau` repos
 1. `cd` into the repo root
 1. Install dependencies: `pipenv sync`
