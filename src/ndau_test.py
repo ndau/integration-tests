@@ -434,11 +434,36 @@ def test_account_attributes(ndau, ndau_suppress_err, set_up_account, rfe_to_ssv)
     assert "InvalidTransaction" in ndau_suppress_err("account lock elephant-test 2d")
 
 
-@pytest.mark.skip(reason="sysvar history is not implemented")
 def test_sysvar_history(ndau):
-    """
-    Test system variable history over time.
+    """Test system variable history"""
+    # make up a fake sv and ensure it doesn't already exist
+    fake_sv_name = random_string("fake-sysvar")
+    sv_json = ndau(f"sysvar get {fake_sv_name}")
+    print(sv_json)
+    sv_data = json.loads(sv_json)[fake_sv_name]
+    assert sv_data == ""
 
-    Not currently implemented, so we can't do anything here.
-    """
-    pass
+    # set it a few times
+    data = ["one", "two", "three"]
+    for val in data:
+        ndau(f"sysvar set {fake_sv_name} {val}")
+
+    # get history
+    sv_json = ndau(f"sysvar history {fake_sv_name}")
+    print(sv_json)
+    sv_data = json.loads(sv_json)["History"]
+    last_height = 0
+    for i in range(len(data)):
+        sv_data_i = sv_data[i]
+        h = sv_data_i["Height"]
+        v = sv_data_i["Value"]
+
+        height = int(h)
+        assert height > last_height
+        last_height = height
+
+        value = base64.b64decode(v).decode("utf-8")
+        assert value == data[i]
+
+    # ensure the blockchain is still alive
+    ndau("info")
