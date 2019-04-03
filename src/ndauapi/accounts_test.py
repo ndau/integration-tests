@@ -10,7 +10,7 @@ from src.util.random_string import random_string
 def accounts_with_history(ndau, rfe):
     # set up some accounts with some history
     names = []
-    for _ in range(5):
+    for _ in range(3):
         name = random_string("test-acct")
         names.append(name)
         ndau(f"account new {name}")
