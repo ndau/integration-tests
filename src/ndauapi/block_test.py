@@ -55,3 +55,17 @@ def test_block_current_height(ndauapi):
 def test_block_range(ndauapi, min_height, start, end, want_code):
     resp = requests.get(f"{ndauapi}/block/range/{start}/{end}")
     assert resp.status_code == want_code
+
+
+@pytest.mark.api
+@pytest.mark.parametrize(
+    "start,end,want_code",
+    [
+        ("one", "2018-07-10T20:01:02Z", requests.codes.bad),  # not a date
+        ("2018-07-10T20:01:02Z", "2018-07-10T20:01:02Z", requests.codes.ok),
+        ("2018-07-10T00:00:00Z", "2018-07-11T00:00:00Z", requests.codes.ok),
+    ],
+)
+def test_block_date_range(ndauapi, min_height, start, end, want_code):
+    resp = requests.get(f"{ndauapi}/block/daterange/{start}/{end}")
+    assert resp.status_code == want_code
