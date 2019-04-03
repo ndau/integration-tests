@@ -451,12 +451,12 @@ def test_sysvar_history(ndau):
     # get history
     sv_json = ndau(f"sysvar history {fake_sv_name}")
     print(sv_json)
-    sv_data = json.loads(sv_json)["History"]
+    sv_data = json.loads(sv_json)["history"]
     last_height = 0
     for i in range(len(data)):
         sv_data_i = sv_data[i]
-        h = sv_data_i["Height"]
-        v = sv_data_i["Value"]
+        h = sv_data_i["height"]
+        v = sv_data_i["value"]
 
         height = int(h)
         assert height > last_height
