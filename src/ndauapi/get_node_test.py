@@ -16,8 +16,3 @@ def test_netinfo(ndauapi, node_id):
     resp = requests.get(f"{ndauapi}/node/{node_id}")
     assert resp.status_code == requests.codes.ok
 
-
-@pytest.mark.api
-def test_node_list(ndauapi):
-    resp = requests.get(f"{ndauapi}/node/nodes")
-    assert resp.status_code == requests.codes.ok
