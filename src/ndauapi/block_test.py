@@ -18,20 +18,23 @@ def current_block(set_up_account, ndauapi):
 
 
 @pytest.fixture(scope="module")
-def min_height(current_block):
-    MIN_HEIGHT = 3
-
-    chain_height = current_block["block"]["header"]["height"]
-    if chain_height < MIN_HEIGHT:
-        pytest.skip(
-            f"this test requires a min block height of {MIN_HEIGHT} "
-            f"but current chain height is {chain_height}"
-        )
+def current_hash(current_block):
+    return current_block["block_meta"]["block_id"]["hash"]
 
 
 @pytest.fixture(scope="module")
-def current_hash(current_block):
-    return current_block["block_meta"]["block_id"]["hash"]
+def current_height(current_block):
+    return current_block["block_meta"]["header"]["height"]
+
+
+@pytest.fixture(scope="module")
+def min_height(current_height):
+    MIN_HEIGHT = 3
+    if current_height < MIN_HEIGHT:
+        pytest.skip(
+            f"this test requires a min block height of {MIN_HEIGHT} "
+            f"but current chain height is {current_height}"
+        )
 
 
 @pytest.mark.api
@@ -111,3 +114,9 @@ def test_block_hash(ndauapi, current_hash, send_valid_hash, want_code, want_body
     if want_body is None:
         want_body = current_hash
     assert want_body in resp.text
+
+
+@pytest.mark.api
+def test_block_transactions(ndauapi, current_height):
+    resp = requests.get(f"{ndauapi}/block/transactions/{current_height}")
+    assert resp.status_code == requests.codes.ok
