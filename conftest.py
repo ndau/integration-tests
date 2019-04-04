@@ -39,11 +39,25 @@ def pytest_addoption(parser):
         default="localnet",
         help="which node net to use, e.g. devnet or localnet",
     )
+    parser.addoption(
+        "--ndauapi",
+        default="http://localhost:3030",
+        help=(
+            "url and port where the ndauapi is listening. "
+            "set to empty to disable api tests. "
+            "default: http://localhost:3030"
+        ),
+    )
 
 
 @pytest.fixture(scope="session")
 def verbose(request):
     return request.config.getoption("verbose") > 0
+
+
+@pytest.fixture(scope="session")
+def ndauapi(request):
+    return request.config.getoption("ndauapi")
 
 
 @pytest.fixture(scope="session")
@@ -78,6 +92,11 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "meta" in item.keywords:
                 item.add_marker(skip_meta)
+    if config.getoption("--ndauapi") == "":
+        skip_api = pytest.mark.skip(reason="skipped: ndauapi not listening")
+        for item in items:
+            if "api" in item.keywords:
+                item.add_marker(skip_api)
 
 
 @pytest.fixture(scope="session")
