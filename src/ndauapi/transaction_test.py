@@ -72,6 +72,6 @@ def test_tx_hash(ndauapi, claim, claim_txhash, send_hash, want_status, want_body
     else:
         hash = "invalid hash"
 
-    resp = requests.get(f"{ndauapi}/transaction/{urlquote(hash)}")
+    resp = requests.get(f"{ndauapi}/transaction/{urlquote(hash, safe='')}")
     assert resp.status_code == want_status
     assert want_body in resp.text
