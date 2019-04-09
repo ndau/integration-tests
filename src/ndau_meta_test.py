@@ -15,7 +15,7 @@ def test_tm_status(netconf):
 
 @pytest.mark.meta
 def test_ndau_node_connection(ndau):
-    # version check ensures we connect properly not just to TM but also to the
+    # "version remote" ensures we connect properly not just to TM but also to the
     # remote node via its query ABCI cmd
-    ndau("-v version check")
+    ndau("-v version remote")
 
