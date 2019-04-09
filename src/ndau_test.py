@@ -2,7 +2,6 @@
 
 import base64
 import json
-import pytest
 from src.util import constants
 from src.util.random_string import random_string
 from time import sleep
@@ -274,7 +273,7 @@ def test_change_settlement_period(ndau, set_up_account):
     assert account_data["settlementSettings"]["next"] is None
 
     # ChangeSettlementPeriod
-    ndau(f"account change-settlement-period {account} {new_period}")
+    ndau(f"account change-recourse-period {account} {new_period}")
     account_data = json.loads(ndau(f"account query {account}"))
     assert account_data["settlementSettings"] is not None
     assert account_data["settlementSettings"]["period"] == old_period
@@ -360,10 +359,17 @@ def test_claim_child_account(ndau, set_up_account):
     parent_account = random_string("claim-parent")
     set_up_account(parent_account)
 
+    # Set up delegation account
+    delegation_account = random_string("child-delegate")
+    set_up_account(delegation_account)
+
     # Declare a child account and claim it.
     child_account = random_string("claim-child")
     settlement_period = "2m3dt5h7m11s"
-    ndau(f"account claim-child {parent_account} {child_account} -p={settlement_period}")
+    ndau(
+        f"account claim-child {parent_account} {child_account} "
+        f"-p={settlement_period} {delegation_account}"
+    )
 
     # Ensure the child account was claimed properly.
     account_data = json.loads(ndau(f"account query {child_account}"))
