@@ -53,6 +53,8 @@ def test_sysvar(ndauapi, ndau):
     fee_bytes = base64.b64decode(sysvars["TransactionFeeScript"], validate=True)
 
     # shouldn't be msgp
+    # unfortunately, msgpack doesn't descend all its exceptions from a common base class,
+    # so we can't pick something appropriate.
     with pytest.raises(Exception):
         msgpack.loads(fee_bytes)
 
