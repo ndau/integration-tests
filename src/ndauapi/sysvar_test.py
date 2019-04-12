@@ -42,19 +42,23 @@ def test_sysvar_history(ndau, ndauapi):
 
 
 @pytest.mark.api
-def test_sysvar(ndauapi, ndau):
-    resp = requests.get(f"{ndauapi}/system/all")
+@pytest.mark.parametrize(
+    "path", ["/system/all", "/system/get/TransactionFeeScript,SIBScript"]
+)
+def test_sysvar_get(ndauapi, ndau, path):
+    resp = requests.get(f"{ndauapi}{path}")
     assert resp.status_code == requests.codes.ok
 
     sysvars = resp.json()
+    assert len(sysvars) > 1
 
     assert "TransactionFeeScript" in sysvars
     print("TransactionFeeScript:", sysvars["TransactionFeeScript"])
     fee_bytes = base64.b64decode(sysvars["TransactionFeeScript"], validate=True)
 
     # shouldn't be msgp
-    # unfortunately, msgpack doesn't descend all its exceptions from a common base class,
-    # so we can't pick something appropriate.
+    # unfortunately, msgpack doesn't descend all its exceptions from a common
+    # base class, so we can't pick something appropriate.
     with pytest.raises(Exception):
         msgpack.loads(fee_bytes)
 
