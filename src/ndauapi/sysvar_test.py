@@ -68,3 +68,32 @@ def test_sysvar_get(ndauapi, ndau, path):
     ]
     assert tool_fee == sysvars["TransactionFeeScript"]
 
+
+@pytest.mark.api
+def test_sysvar_set(ndauapi, ndau):
+    name = random_string("fake-sysvar")
+    value = random_string("fake-value")
+
+    cur_value = json.loads(ndau(f"sysvar get {name}"))[name]
+    if cur_value != "":
+        pytest.skip("accidentally generated an existing sysvar")
+
+    resp = requests.post(
+        f"{ndauapi}/system/set/{name}", data=f'"{value}"'.encode("utf8")
+    )
+    assert resp.status_code == requests.codes.ok
+
+    # this endpoint must not modify the blockchain
+    cur_value = json.loads(ndau(f"sysvar get {name}"))[name]
+    assert cur_value == ""
+
+    # this endpoint must return a transaction with certain properties
+    tx = resp.json()
+
+    # check expected fields
+    assert set(tx.keys()) == {"name", "value", "sequence", "signatures"}
+    assert tx["name"] == name
+    assert tx["value"] == base64.b64encode(msgpack.dumps(value)).decode("utf8")
+    assert tx["sequence"] == 0
+    assert tx["signatures"] is None or tx["signatures"] == []  # doesn't matter which
+
