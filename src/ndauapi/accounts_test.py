@@ -46,32 +46,14 @@ def test_handle_accounts(ndauapi, input, expect_code):
         (None, None, requests.codes.bad, "address parameter required"),
         (False, None, requests.codes.bad, "could not validate address"),
         (True, None, requests.codes.ok, None),
+        (True, {"limit": "not_a_number"}, requests.codes.bad, "paging parms"),
+        (True, {"limit": "not_a_number"}, requests.codes.bad, "parsing"),
         (
             True,
-            {"pageindex": "not_a_number"},
-            requests.codes.bad,
-            "pageindex must be a valid number",
-        ),
-        (
-            True,
-            {"pagesize": "not_a_number"},
-            requests.codes.bad,
-            "pagesize must be a valid number",
-        ),
-        (True, {"pagesize": -3}, requests.codes.bad, "pagesize must be non-negative"),
-        (
-            True,
-            {"pageindex": 0, "pagesize": 1},
+            {"after": 0, "limit": 1},
             requests.codes.ok,
             # the first transaction should have zero balance, and must show up
             '"Balance":0',
-        ),
-        (
-            True,
-            {"pageindex": -1, "pagesize": 1},
-            requests.codes.ok,
-            # the first transaction should have zero balance, and must show up
-            None,
         ),
     ],
 )
