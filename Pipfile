@@ -10,6 +10,7 @@ python_version = "3.6"
 toml = "*"
 pytest = "*"
 requests = "*"
+msgpack = "*"
 
 [dev-packages]
 pylint = "*"

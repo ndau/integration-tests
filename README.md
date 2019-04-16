@@ -6,6 +6,7 @@
 1. Install `pipenv`: `pip3 install pipenv`
 1. Install `pytest`: `pip3 install pytest`
 1. Install `toml`: `pip3 install toml`
+1. Install `msgpack`: `pip3 install msgpack`
 1. If you intend to run on non-localnet
     1. Use the --ndauapi flag to provide a protocol, host, and port for the ndauapi.
     1. Set the --net flag to something other than localnet.
