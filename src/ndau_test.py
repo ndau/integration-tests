@@ -164,7 +164,7 @@ def test_genesis(ndau, rfe, ndau_suppress_err, netconf, zero_tx_fees):
                 assert reward_balance > 0
 
 
-def test_transfer(ndau, nonzero_tx_fees, set_up_account):
+def test_transfer(ndau, nonzero_tx_fees, set_up_account, zero_sib):
     """Test Transfer transaction"""
     # Set up accounts to transfer between.
     account1 = random_string("xfer1")
@@ -173,9 +173,9 @@ def test_transfer(ndau, nonzero_tx_fees, set_up_account):
     set_up_account(account2)
 
     orig_ndau = 10  # from set_up_account()
-    orig_napu = orig_ndau * 1e8
+    orig_napu = int(orig_ndau * 1e8)
     xfer_ndau = 1  # We'll transfer this amount
-    xfer_napu = xfer_ndau * 1e8
+    xfer_napu = int(xfer_ndau * 1e8)
 
     # One napu for the claim transaction.
     account_data1 = json.loads(ndau(f"account query {account1}"))
@@ -195,7 +195,7 @@ def test_transfer(ndau, nonzero_tx_fees, set_up_account):
     assert account_data2["lock"] is None
 
 
-def test_transfer_lock(ndau, nonzero_tx_fees, set_up_account):
+def test_transfer_lock(ndau, nonzero_tx_fees, set_up_account, zero_sib):
     """Test TransferLock transaction"""
     # Set up source claimed account with funds.
     account1 = random_string("xferlock1")
@@ -207,9 +207,9 @@ def test_transfer_lock(ndau, nonzero_tx_fees, set_up_account):
     ndau(f"account new {account2}")
 
     orig_ndau = 10  # from set_up_account()
-    orig_napu = orig_ndau * 1e8
+    orig_napu = int(orig_ndau * 1e8)
     xfer_ndau = 1  # We'll transfer this amount
-    xfer_napu = xfer_ndau * 1e8
+    xfer_napu = int(xfer_ndau * 1e8)
 
     # One napu for the claim transaction.
     account_data1 = json.loads(ndau(f"account query {account1}"))

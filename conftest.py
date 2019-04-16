@@ -277,6 +277,20 @@ def rfe_to_ssv(ndau, ndautool_toml, rfe_to_rfe):
 
 
 @pytest.fixture(scope="session")
+def rfe_to_rp(ndau, ndautool_toml, rfe_to_rfe):
+    """
+    Ensure the RecordPrice account has a non-zero balance
+
+    This has session scope, so it should only run once for a given test run
+    """
+    rp_acct = ndautool_toml["record_price"]["address"]
+    rp_bal = json.loads(ndau(f"account query -a {rp_acct}"))["balance"]
+    if rp_bal < 1e8:  # 1 ndau
+        ndau(f"rfe 10 -a {rp_acct}")
+        ndau("issue 10")
+
+
+@pytest.fixture(scope="session")
 def rfe(ndau, rfe_to_rfe):
     """
     Wrapper for ndau(f"rfe {amount} {account}") that ensures the RFE'd amount
@@ -315,3 +329,10 @@ def zero_tx_fees(ndau, rfe_to_ssv):
 @pytest.fixture
 def nonzero_tx_fees(ndau, rfe_to_ssv):
     yield from ensure_tx_fees(ndau, rfe_to_ssv, constants.ONE_NAPU_FEE_SCRIPT)
+
+
+@pytest.fixture
+def zero_sib(ndau, rfe_to_rp):
+    target_price = json.loads(ndau("sib"))["TargetPrice"]
+    ndau(f"record-price --nanocents {target_price}")
+
