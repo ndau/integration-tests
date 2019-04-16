@@ -18,7 +18,6 @@ from src.util import constants
 from src.util.subp import subpv, ndenv
 from src.util.tx_fees import ensure_tx_fees
 
-
 def pytest_addoption(parser):
     """See https://docs.pytest.org/en/latest/example/simple.html."""
     parser.addoption(
@@ -150,27 +149,21 @@ def netconf(is_localnet, node_net):
             "nodenet1_rpc": str(constants.LOCALNET1_RPC),
         }
 
+    node_url_config = ndenv("NODE_ADDRESS", "NODE_0_RPC", "NODE_1_RPC")
+
+    if node_url_config["NODE_ADDRESS"] is None:
+        node_url_config["NODE_ADDRESS"] = constants.DEFAULT_REMOTE_ADDRESS
+
+    if node_url_config["NODE_0_RPC"] is None:
+        node_url_config["NODE_0_RPC"] = constants.DEFAULT_REMOTE_RPC_PORT_0
+
+    if node_url_config["NODE_1_RPC"] is None:
+        node_url_config["NODE_1_RPC"] = constants.DEFAULT_REMOTE_RPC_PORT_1
+
     return {
-        "address": subpv(
-            "kubectl get nodes -o "
-            "jsonpath='{.items[*].status.addresses[?(@.type==\"ExternalIP\")].address}'"
-            ' | tr " " "\n" | head -n 1 | tr -d "[:space:]"',
-            env=ndenv(),
-        ),
-        "nodenet0_rpc": subpv(
-            "kubectl get service --namespace default -o "
-            "jsonpath='{.spec.ports[?(@.name==\"rpc\")].nodePort}' "
-            + node_net
-            + "-0-nodegroup-ndau-tendermint-service",
-            env=ndenv(),
-        ),
-        "nodenet1_rpc": subpv(
-            "kubectl get service --namespace default -o "
-            "jsonpath='{.spec.ports[?(@.name==\"rpc\")].nodePort}' "
-            + node_net
-            + "-1-nodegroup-ndau-tendermint-service",
-            env=ndenv(),
-        ),
+        "address": node_url_config["NODE_ADDRESS"],
+        "nodenet0_rpc": node_url_config["NODE_0_RPC"],
+        "nodenet1_rpc": node_url_config["NODE_1_RPC"],
     }
 
 
