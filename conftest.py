@@ -336,3 +336,13 @@ def zero_sib(ndau, rfe_to_rp):
     target_price = json.loads(ndau("sib"))["TargetPrice"]
     ndau(f"record-price --nanocents {target_price}")
 
+
+@pytest.fixture
+def max_sib(ndau, rfe_to_rp):
+    target_price = json.loads(ndau("sib"))["TargetPrice"]
+    ndau(f"record-price --nanocents {target_price // 2}")
+
+    # validate that we have max sib
+    sib = json.loads(ndau("sib"))["SIB"]
+    assert sib == 500_000_000_000
+
