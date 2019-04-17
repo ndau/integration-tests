@@ -6,11 +6,10 @@ import pytest
 
 from src.util.subp import subpv
 
-
 @pytest.mark.meta
 def test_tm_status(netconf):
     # see https://tendermint.readthedocs.io/en/master/getting-started.html
-    subpv(f'curl -s http://{netconf["address"]}:' f'{netconf["nodenet0_rpc"]}/status')
+    subpv(f'curl -s {netconf["address"]}:' f'{netconf["nodenet0_rpc"]}/status')
 
 
 @pytest.mark.meta

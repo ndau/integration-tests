@@ -2,6 +2,7 @@
 
 import base64
 import json
+from src.util.ensure_protocol import ensure_protocol
 from src.util import constants
 from src.util.random_string import random_string
 from time import sleep
@@ -68,7 +69,8 @@ def test_genesis(ndau, rfe, ndau_suppress_err, netconf, zero_tx_fees):
 
     # Self-stake and register the node account to the node.
     ndau(f"account stake {node_account} {node_account}")
-    rpc_address = f'http://{netconf["address"]}:{netconf["nodenet0_rpc"]}'
+
+    rpc_address = f'{ensure_protocol(netconf["address"])}:{netconf["nodenet0_rpc"]}'
     # Bytes lifted from tx_register_node_test.go.
     distribution_script_bytes = b"\xa0\x00\x88"
     distribution_script = base64.b64encode(distribution_script_bytes).decode("utf-8")

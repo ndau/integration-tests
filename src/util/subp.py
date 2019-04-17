@@ -9,11 +9,11 @@ def ndenv(*extras):
     Copy certain environment variables from the surrounding environment to pass
     into the subcommand.
 
-    By default, it copies "PATH", "HOME", "TMHOME", "NDAUHOME", and "KUBECONFIG".
+    By default, it copies "PATH", "HOME", "TMHOME", and "NDAUHOME".
     If any more are desired, just pass in their names as string arguments.
     """
     env = {}
-    for var in ("PATH", "HOME", "TMHOME", "NDAUHOME", "KUBECONFIG") + extras:
+    for var in ("PATH", "HOME", "TMHOME", "NDAUHOME" ) + extras:
         if os.environ.get(var) is not None:
             env[var] = os.environ[var]
     return env
