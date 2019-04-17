@@ -9,7 +9,7 @@
 1. Install `msgpack`: `pip3 install msgpack`
 1. If you intend to run on non-localnet
     1. Use the --ndauapi flag to provide a protocol, host, and port for the ndauapi.
-    1. Set the --net flag to something other than localnet.
+    1. Set the `--net` flag to something other than localnet.
     1. Optionally, you may provide the following environment variables
         - NODE_ADDRESS
         - NODE_0_RPC
