@@ -8,12 +8,12 @@
 1. Install `toml`: `pip3 install toml`
 1. Install `msgpack`: `pip3 install msgpack`
 1. If you intend to run on non-localnet
-    1. Use the --ndauapi flag to provide a protocol, host, and port for the ndauapi.
+    1. Use the `--ndauapi` flag to provide a protocol, host, and port for the ndauapi.
     1. Set the `--net` flag to something other than localnet.
     1. Optionally, you may provide the following environment variables
-        - NODE_ADDRESS
-        - NODE_0_RPC
-        - NODE_1_RPC
+        - `NODE_ADDRESS`
+        - `NODE_0_RPC`
+        - `NODE_1_RPC`
         These will override the default values which point to devnet as deployed on ECS.
 
 1. Make sure you have your `NDAUHOME` environment variable set.  e.g. when running against localnet, you could use `export NDAUHOME=$HOME/.localnet/data/ndau-0`
