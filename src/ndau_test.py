@@ -233,6 +233,38 @@ def test_transfer_lock(ndau, nonzero_tx_fees, set_up_account, zero_sib):
     assert account_data2["lock"]["unlocksOn"] is None
 
 
+def test_transfer_with_sib(ndau, nonzero_tx_fees, set_up_account, max_sib):
+    """Test Transfer transaction"""
+    # Set up accounts to transfer between.
+    account1 = random_string("xfer1")
+    set_up_account(account1)
+    account2 = random_string("xfer2")
+    set_up_account(account2)
+
+    orig_ndau = 10  # from set_up_account()
+    orig_napu = int(orig_ndau * 1e8)
+    xfer_ndau = 1  # We'll transfer this amount
+    xfer_napu = int(xfer_ndau * 1e8)
+
+    # One napu for the claim transaction.
+    account_data1 = json.loads(ndau(f"account query {account1}"))
+    assert account_data1["balance"] == orig_napu - constants.ONE_NAPU_FEE
+
+    # Transfer
+    ndau(f"transfer {xfer_ndau} {account1} {account2}")
+    account_data1 = json.loads(ndau(f"account query {account1}"))
+    account_data2 = json.loads(ndau(f"account query {account2}"))
+    # Subtract one napu for the claim transaction, one for the transfer.
+    assert (
+        account_data1["balance"]
+        == orig_napu - int(1.5 * xfer_napu) - 2 * constants.ONE_NAPU_FEE
+    )
+    assert account_data1["lock"] is None
+    # Subtract one napu for the claim transaction.
+    assert account_data2["balance"] == orig_napu + xfer_napu - constants.ONE_NAPU_FEE
+    assert account_data2["lock"] is None
+
+
 def test_lock_notify(ndau, set_up_account):
     """Test Lock and Notify transactions"""
 
