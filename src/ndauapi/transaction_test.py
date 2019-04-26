@@ -15,6 +15,8 @@ from src.util.random_string import random_string
 def claim_json(ndau):
     name = random_string("json-acct")
     ndau(f"account new {name}")
+    # JSG must rfe before claim to pay for tx fees
+    ndau(f"rfe 10 {name}")
     return json.loads(ndau(f"-j account claim {name}"))
 
 
