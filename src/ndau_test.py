@@ -61,14 +61,15 @@ def test_genesis(ndau, rfe, ndau_suppress_err, netconf, zero_tx_fees):
     ndau(f"account lock {purchaser_account} {lock_years}y")
 
     # Set up a node operator account with 1000 ndau needed to self-stake.
+    stake_ndau = 1000
     node_account = random_string("genesis-node")
     ndau(f"account new {node_account}")
     # We can claim the accont before funding it since tx fees are zero.
     ndau(f"account claim {node_account}")
-    rfe(1000, node_account)
+    rfe(stake_ndau, node_account)
 
     # Self-stake and register the node account to the node.
-    ndau(f"account stake {node_account} {node_account}")
+    ndau(f"account stake {node_account} {node_account} {node_account} {stake_ndau}")
 
     rpc_address = f'{ensure_protocol(netconf["address"])}:{netconf["nodenet0_rpc"]}'
     # Bytes lifted from tx_register_node_test.go.
@@ -299,19 +300,19 @@ def test_change_settlement_period(ndau, set_up_account):
     account = random_string("settlement-period")
     set_up_account(account)
     account_data = json.loads(ndau(f"account query {account}"))
-    assert account_data["settlementSettings"] is not None
-    old_period = account_data["settlementSettings"]["period"]
+    assert account_data["recourseSettings"] is not None
+    old_period = account_data["recourseSettings"]["period"]
     assert old_period is not None
     assert old_period != ""
     assert old_period != new_period
-    assert account_data["settlementSettings"]["next"] is None
+    assert account_data["recourseSettings"]["next"] is None
 
     # ChangeSettlementPeriod
     ndau(f"account change-recourse-period {account} {new_period}")
     account_data = json.loads(ndau(f"account query {account}"))
-    assert account_data["settlementSettings"] is not None
-    assert account_data["settlementSettings"]["period"] == old_period
-    assert account_data["settlementSettings"]["next"] == new_period
+    assert account_data["recourseSettings"] is not None
+    assert account_data["recourseSettings"]["period"] == old_period
+    assert account_data["recourseSettings"]["next"] == new_period
 
 
 def test_change_validation(ndau, set_up_account):
@@ -411,8 +412,8 @@ def test_claim_child_account(ndau, set_up_account):
     assert len(account_data["validationKeys"]) == 1
     parent_address = account_data["parent"]
     assert account_data["progenitor"] == parent_address
-    assert account_data["settlementSettings"] is not None
-    assert account_data["settlementSettings"]["period"] == settlement_period
+    assert account_data["recourseSettings"] is not None
+    assert account_data["recourseSettings"]["period"] == settlement_period
 
     # See that the parent/progenitor address matches that of the parent account.
     account_data = json.loads(ndau(f"account query -a {parent_address}"))
