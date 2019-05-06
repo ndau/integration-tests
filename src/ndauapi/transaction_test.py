@@ -4,7 +4,6 @@ import json
 import pytest
 import requests
 from tempfile import NamedTemporaryFile
-from urllib.parse import quote as urlquote
 from src.util.random_string import random_string
 
 # requests codes aren't technically members of their containing objects
@@ -45,9 +44,9 @@ def claim_txhash(claim_signable_bytes):
             pkg/meta/transaction/transactable.go#L163-L166
     """
     return (
-        base64.b64encode(hashlib.md5(claim_signable_bytes).digest())
+        base64.urlsafe_b64encode(hashlib.md5(claim_signable_bytes).digest())
         .decode("utf-8")
-        .strip("=")
+        .strip("=") # tx hashes do not include base64 padding characters
     )
 
 
@@ -68,12 +67,12 @@ def claim(ndau, claim_file):
 )
 def test_tx_hash(ndauapi, claim, claim_txhash, send_hash, want_status, want_body):
     if send_hash is None:
-        hash = ""
+        txhash = ""
     elif send_hash:
-        hash = claim_txhash
+        txhash = claim_txhash
     else:
-        hash = "invalid hash"
+        txhash = "invalid-hash"
 
-    resp = requests.get(f"{ndauapi}/transaction/{urlquote(hash, safe='')}")
+    resp = requests.get(f"{ndauapi}/transaction/{txhash}")
     assert resp.status_code == want_status
     assert want_body in resp.text
