@@ -3,6 +3,7 @@ import hashlib
 import json
 import pytest
 import requests
+import time
 from tempfile import NamedTemporaryFile
 from src.util.random_string import random_string
 
@@ -74,5 +75,56 @@ def test_tx_hash(ndauapi, claim, claim_txhash, send_hash, want_status, want_body
         txhash = "invalid-hash"
 
     resp = requests.get(f"{ndauapi}/transaction/{txhash}")
+    assert resp.status_code == want_status
+    assert want_body in resp.text
+
+
+@pytest.mark.api
+def test_tx_prevalidate_and_submit(ndauapi, ndau, ndautool_toml):
+    # Any transaction will do.  Here we RFE to the rfe address.
+    txtype = "ReleaseFromEndowment"
+    name = random_string("prevalsubmit-acct")
+    ndau(f"account new {name}")
+    tx = json.loads(ndau(f"-j rfe 1 {name}"))
+
+    # We need the tx in a temp file to get the signable bytes.
+    tf = NamedTemporaryFile(mode="w+t")
+    json.dump(tx, tf)
+    tf.flush()
+    tx_file = tf.name
+
+    # We can calculate the expected tx hash before we submit the transaction.
+    signable_bytes_b64 = ndau(f"signable-bytes --strip {txtype} {tx_file}")
+    signable_bytes = base64.b64decode(signable_bytes_b64, validate=True)
+    txhash = (
+        base64.urlsafe_b64encode(hashlib.md5(signable_bytes).digest())
+        .decode("utf-8")
+        .strip("=") # tx hashes do not include base64 padding characters
+    )
+
+    # We expect the next transactions to succeed when posted.
+    want_body = f'"hash":"{txhash}"' 
+    want_status = requests.codes.ok
+
+    # Prevalidate new tx.
+    resp = requests.post(f"{ndauapi}/tx/prevalidate/{txtype}", json=tx)
+    assert resp.status_code == want_status
+    assert want_body in resp.text
+
+    # Submit new tx.
+    resp = requests.post(f"{ndauapi}/tx/submit/{txtype}", json=tx)
+    assert resp.status_code == want_status
+    assert want_body in resp.text
+
+    # We'll repost the same transactions for expected no-ops.
+    want_status = requests.codes.accepted
+
+    # Prevalidate tx again.
+    resp = requests.post(f"{ndauapi}/tx/prevalidate/{txtype}", json=tx)
+    assert resp.status_code == want_status
+    assert want_body in resp.text
+
+    # Submit tx again.
+    resp = requests.post(f"{ndauapi}/tx/submit/{txtype}", json=tx)
     assert resp.status_code == want_status
     assert want_body in resp.text
