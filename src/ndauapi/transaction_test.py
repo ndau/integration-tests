@@ -63,7 +63,7 @@ def claim(ndau, claim_file):
         (None, requests.codes.bad, "txhash parameter required"),
         (False, requests.codes.ok, "null"),
         # just ensure we got a real-looking tx back
-        (True, requests.codes.ok, '{"Tx":{"Nonce":'),
+        (True, requests.codes.ok, '"Tx":{"Nonce":'),
     ],
 )
 def test_tx_hash(ndauapi, claim, claim_txhash, send_hash, want_status, want_body):
