@@ -2,7 +2,6 @@
 
 import base64
 import json
-from src.util.ensure_protocol import ensure_protocol
 from src.util import constants
 from src.util.random_string import random_string
 from time import sleep
@@ -44,7 +43,9 @@ def test_create_account(ndau, rfe, zero_tx_fees):
     assert account_data["validationKeys"] is not None
 
 
-def test_genesis(ndau, rfe, ndau_suppress_err, netconf, zero_tx_fees):
+def test_genesis(
+    ndau, rfe, ndau_suppress_err, netconf, zero_tx_fees, node_rules_account
+):
     # Set up a purchaser account.  We don't have to rfe to it to pay for
     # 0-napu claim tx fee.
     purchaser_account = random_string("genesis-purchaser")
@@ -68,15 +69,18 @@ def test_genesis(ndau, rfe, ndau_suppress_err, netconf, zero_tx_fees):
     ndau(f"account claim {node_account}")
     rfe(stake_ndau, node_account)
 
-    # Self-stake and register the node account to the node.
-    ndau(f"account stake {node_account} {node_account} {node_account} {stake_ndau}")
+    # Stake to node rules account
+    ndau(
+        f"account stake {node_account} "
+        f"--rules-address={node_rules_account} --staketo-address={node_rules_account} "
+        f"{stake_ndau}"
+    )
 
-    rpc_address = f'{ensure_protocol(netconf["address"])}:{netconf["nodenet0_rpc"]}'
     # Bytes lifted from tx_register_node_test.go.
     distribution_script_bytes = b"\xa0\x00\x88"
     distribution_script = base64.b64encode(distribution_script_bytes).decode("utf-8")
     err_msg = ndau_suppress_err(
-        f"account register-node {node_account} {rpc_address} {distribution_script}"
+        f"account register-node {node_account} {distribution_script}"
     )
     assert err_msg == "" or err_msg.startswith("acct is already staked")
 

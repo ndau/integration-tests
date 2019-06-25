@@ -18,6 +18,7 @@ from src.util import constants
 from src.util.subp import subpv, ndenv
 from src.util.tx_fees import ensure_tx_fees
 
+
 def pytest_addoption(parser):
     """See https://docs.pytest.org/en/latest/example/simple.html."""
     parser.addoption(
@@ -149,21 +150,13 @@ def netconf(is_localnet, node_net):
             "nodenet1_rpc": str(constants.LOCALNET1_RPC),
         }
 
-    node_url_config = ndenv("NODE_ADDRESS", "NODE_0_RPC", "NODE_1_RPC")
-
-    if node_url_config["NODE_ADDRESS"] is None:
-        node_url_config["NODE_ADDRESS"] = constants.DEFAULT_REMOTE_ADDRESS
-
-    if node_url_config["NODE_0_RPC"] is None:
-        node_url_config["NODE_0_RPC"] = constants.DEFAULT_REMOTE_RPC_PORT_0
-
-    if node_url_config["NODE_1_RPC"] is None:
-        node_url_config["NODE_1_RPC"] = constants.DEFAULT_REMOTE_RPC_PORT_1
-
     return {
-        "address": node_url_config["NODE_ADDRESS"],
-        "nodenet0_rpc": node_url_config["NODE_0_RPC"],
-        "nodenet1_rpc": node_url_config["NODE_1_RPC"],
+        name: os.environ.get(env, default)
+        for env, name, default in [
+            ("NODE_ADDRESS", "address", constants.DEFAULT_REMOTE_ADDRESS),
+            ("NODE_0_RPC", "nodenet0_rpc", constants.DEFAULT_REMOTE_RPC_PORT_0),
+            ("NODE_1_RPC", "nodenet1_rpc", constants.DEFAULT_REMOTE_RPC_PORT_1),
+        ]
     }
 
 
@@ -338,4 +331,19 @@ def max_sib(ndau, rfe_to_rp):
     # validate that we have max sib
     sib = json.loads(ndau("sib"))["SIB"]
     assert sib == 500_000_000_000
+
+
+@pytest.fixture(scope="session")
+def node_rules_account(ndau, rfe):
+    address = json.loads(ndau(f"sysvar get NodeRulesAccountAddress"))[
+        "NodeRulesAccountAddress"
+    ][0]
+    data = json.loads(ndau(f"account query -a={address}"))
+    if data["stake_rules"] is None:
+        raise Exception(
+            "rules account is not configured; must manually set stake rules for "
+            f"{address}"
+        )
+
+    return address
 
