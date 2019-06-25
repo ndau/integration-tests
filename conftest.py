@@ -130,15 +130,24 @@ def get_ndau_tmhome_dir(use_kub, keeptemp):
         shutil.rmtree(tmhome_dir, True)
 
 
-@pytest.fixture(scope="session")
-def ndautool_path():
+def findpath(name):
     cmds = Path(os.path.expandvars("$GOPATH/src/github.com/oneiro-ndev/commands"))
-    for subpath in ("ndau", "cmd/ndau/ndau"):
+    for subpath in (name, f"cmd/{name}/{name}"):
         p = cmds / subpath
         if p.exists() and p.is_file() and p.stat().st_mode & 1 == 1:
             # file exists and u-x bit is set
             return p
-    raise Exception("ndautool not found")
+    raise Exception(f"{name} not found")
+
+
+@pytest.fixture(scope="session")
+def ndautool_path():
+    return findpath("ndau")
+
+
+@pytest.fixture(scope="session")
+def keytool_path():
+    return findpath("keytool")
 
 
 @pytest.fixture(scope="session")
@@ -194,6 +203,22 @@ def ndau(ndautool_path, netconf, keeptemp, use_kub):
             shutil.move(temp_conf_path, conf_path)
         else:
             os.remove(conf_path)
+
+
+@pytest.fixture(scope="session")
+def keytool(keytool_path):
+    """
+    Fixture providing a ndau function.
+    """
+
+    def kt(cmd, **kwargs):
+        try:
+            return subpv(f"{keytool_path} {cmd}", env=ndenv(), **kwargs)
+        except subprocess.CalledProcessError as e:
+            print(e.stdout)
+            raise
+
+    return kt
 
 
 @pytest.fixture(scope="session")
@@ -325,12 +350,15 @@ def zero_sib(ndau, rfe_to_rp):
 
 @pytest.fixture
 def max_sib(ndau, rfe_to_rp):
-    target_price = json.loads(ndau("sib"))["TargetPrice"]
-    ndau(f"record-price --nanocents {target_price // 2}")
+    ndau(f"record-price --nanocents 1")
+    # we can't validate any particular number for the outcome of SIB; we've
+    # already changed the SIB chaincode in a way which invalidated the previous
+    # check of its outcome. What we can do, at least, is ensure it is non-0 when
+    # the market price is the minimum legal value
 
-    # validate that we have max sib
+    # validate that we have some sib
     sib = json.loads(ndau("sib"))["SIB"]
-    assert sib == 500_000_000_000
+    assert sib > 0
 
 
 @pytest.fixture(scope="session")

@@ -2,6 +2,9 @@
 
 import base64
 import json
+import os
+import pytest
+import toml
 from src.util import constants
 from src.util.random_string import random_string
 from time import sleep
@@ -260,10 +263,7 @@ def test_transfer_with_sib(ndau, nonzero_tx_fees, set_up_account, max_sib):
     account_data1 = json.loads(ndau(f"account query {account1}"))
     account_data2 = json.loads(ndau(f"account query {account2}"))
     # Subtract one napu for the claim transaction, one for the transfer.
-    assert (
-        account_data1["balance"]
-        == orig_napu - int(1.5 * xfer_napu) - 2 * constants.ONE_NAPU_FEE
-    )
+    assert account_data1["balance"] < orig_napu - xfer_napu - 2 * constants.ONE_NAPU_FEE
     assert account_data1["lock"] is None
     # Subtract one napu for the claim transaction.
     assert account_data2["balance"] == orig_napu + xfer_napu - constants.ONE_NAPU_FEE
@@ -354,28 +354,160 @@ def test_change_validation(ndau, set_up_account):
     assert account_data["validationScript"] == "oAAgiA=="
 
 
-def test_command_validator_change(ndau):
+def test_command_validator_change(
+    ndau, ndau_suppress_err, keytool, set_up_account, node_rules_account
+):
     """Test CommandValidatorChange transaction"""
 
-    # Get info about the validator we want to change.
+    # testing CVC necessarily involves testing the node to which we are
+    # connected: that's the only one which shows up in the info section.
+    # however, we have to make some assumptions. In particular, we assume
+    # that we're connected to a TM localnet whose config data is in a
+    # standardized location. If that's not in fact the case, then we have to
+    # just skip this test.
+
+    PVK_PATH = os.path.expanduser(
+        "~/.localnet/data/tendermint-ndau-0/config/priv_validator_key.json"
+    )
+
+    try:
+        with open(PVK_PATH, "r") as f:
+            pvk = json.load(f)
+    except FileNotFoundError:
+        pytest.skip("validator info not found")
+    print(pvk)
+
+    # Get info about the connected validator
     info = json.loads(ndau("info"))
     assert info["validator_info"] is not None
+    if info["validator_info"]["address"] != pvk["address"]:
+        pytest.skip("not connected to localnet node 0")
+
     assert info["validator_info"]["pub_key"] is not None
 
-    assert len(info["validator_info"]["pub_key"]) > 0
-    pubkey_bytes = bytes(info["validator_info"]["pub_key"])
+    info_pkb = bytes(info["validator_info"]["pub_key"])
+    pvk_pkb = base64.b64decode(pvk["pub_key"]["value"])
+    assert info_pkb == pvk_pkb
+
+    # with this, we're satisfied that info contains the public-private keypair
+    # used to construct this validator.
+    #
+    # First, create the ndau variants of these keys
+    ndpvt = keytool(f"ed raw private {pvk['priv_key']['value']} --b64")
+    ndpub = keytool(f"ed raw public {pvk['pub_key']['value']} --b64")
+    address = keytool(f"addr {ndpub}")
+
+    # Now, we need to inject that data into ndautool.toml appropriately
+    conf_path = ndau("conf-path")
+    with open(conf_path, "r") as f:
+        cpd = toml.load(f)
+
+    # do we already have an account referring to the node we're connected to?
+    ln0 = None
+    for account in cpd["accounts"]:
+        # skip accounts which don't have public ownership keys
+        if "ownership" not in account or "public" not in account["ownership"]:
+            continue
+        if account["ownership"]["public"] == ndpub:
+            ln0 = account
+            break
+
+    # create an account if it doesn't exist
+    if ln0 is None:
+        name = random_string("localnet-0")
+        ln0 = {
+            "name": name,
+            "address": address,
+            "ownership": {"public": ndpub, "private": ndpvt},
+        }
+        cpd["accounts"].append(ln0)
+
+    # claim the account if it has no transfer keys
+    claim = None
+    if "transfer" not in ln0 or len(ln0["transfer"]) == 0:
+        # in order for this test to be repeatable, we need predictable validation keys
+        # the ndau tool can't do this for us directly, so we have to work around it.
+        # these keys are arbitrary constants
+        ln0["transfer"] = [
+            {
+                "public": "npuba8jadtbbebbp5iixnbv2kp5suzt35am2zu4gjg2e9t4ghzci97nj7a5mnrvx823883tpfa3f",  # noqa: E501 this line can't usefully be shortened
+                "private": "npvtayjadtcbiahcbm8k5ik5piz5n86itab9ffx7qf244ayhnaqwz5fw3c4aj3zmqsy7wekya36fg72jm267sf6m3pdevncr27dd5ter8ye8spxyh349uxz8s684",  # noqa: E501 this one either
+            }
+        ]
+        acct_data = json.loads(ndau("account query -a=" + ln0["address"]))
+        pubkeys = [t["public"] for t in ln0["transfer"]]
+
+        if len(acct_data.get("validationKeys", [])) == 0:
+            claim = {
+                "target": ln0["address"],
+                "ownership": ndpub,
+                "validation_keys": pubkeys,
+                "validation_script": None,
+                "sequence": 1 + acct_data["sequence"],
+            }
+
+        acct_data["validationKeys"].sort()
+        pubkeys.sort()
+
+        if acct_data["validationKeys"] != pubkeys:
+            pytest.skip("localnet-0 is already claimed with unknown validation keys")
+
+    # now update ndautool.toml
+    with open(conf_path, "w") as f:
+        toml.dump(cpd, f)
+
+    if claim is not None:
+        txb64 = ndau(
+            f"signable-bytes setvalidation", text=True, input=json.dumps(claim)
+        )
+        claim["signature"] = keytool(f"sign {ndpvt} {txb64} --b64")
+        stdout = ndau_suppress_err(
+            "send setvalidation", text=True, input=json.dumps(claim)
+        )
+
+        if len(stdout.strip()) > 0:
+            # if the claim produced output, it didn't work for some reason
+            # the most likely reason is that the blockchain already has claim
+            # data for this account. Because it's not HD, we can't recover it.
+            # therefore, we have to just skip this test this time
+            pytest.skip(
+                "localnet-0 account already claimed with unknown keys; "
+                f"stdout:\n{stdout}"
+            )
+
+    # rfe enough ndau to stake
+    ndau(f'rfe 1000 {ln0["name"]}')
+    # Stake to node rules account
+    stdout = ndau_suppress_err(
+        f"account stake {ln0['name']} "
+        f"--rules-address={node_rules_account} --staketo-address={node_rules_account} "
+        "1000"
+    )
+    if len(stdout.strip()) > 0:
+        # the most likely error in this case is that the account is already staked
+        # to the node rules account, and you can't have two primary stakes to the same
+        # rules account. If that's the case, then everything is fine.
+        print(stdout)
+
+    stdout = ndau_suppress_err(
+        # script from
+        # https://github.com/oneiro-ndev/commands/blob/master/
+        #         cmd/chasm/examples/zero.chbin
+        f"account register-node {ln0['name']} oAAgiA"
+    )
+    if len(stdout.strip()) > 0:
+        # the most likely error in this case is that the node is already registered,
+        # in which case everything is fine
+        print(stdout)
 
     assert info["validator_info"]["voting_power"] is not None
     old_power = info["validator_info"]["voting_power"]
-
-    # Get non-padded base64 encoding.
-    pubkey = base64.b64encode(pubkey_bytes).decode("utf-8").rstrip("=")
 
     # Cycle over a power range of 5, starting at the default power of 10.
     new_power = 10 + (old_power + 6) % 5
 
     # CVC
-    ndau(f"cvc {pubkey} {new_power}")
+    ndau(f"cvc {ln0['name']} {new_power}")
 
     # Make up to 10 attempts for the change in power to propagate.
     new_voting_power_was_set = False
