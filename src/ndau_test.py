@@ -4,9 +4,13 @@ import base64
 import json
 import os
 import pytest
+import tarfile
+import tempfile
 import toml
+from pathlib import Path
 from src.util import constants
 from src.util.random_string import random_string
+from src.util.subp import subpv
 from time import sleep
 
 
@@ -354,6 +358,59 @@ def test_change_validation(ndau, set_up_account):
     assert account_data["validationScript"] == "oAAgiA=="
 
 
+def get_pvk():
+    """
+    Get the private validator key JSON file for node 0 of the appropriate network.
+
+    Tries to find the file for localnet node 0. If that fails, tries to download
+    the file appropriate for devnet-0 and use that.
+
+    Returns the parsed JSON data from the file, or an exception.
+    """
+    PVK_PATH = (
+        Path.home()
+        / ".localnet"
+        / "data"
+        / "tendermint-ndau-0"
+        / "config"
+        / "priv_validator_key.json"
+    )
+
+    if PVK_PATH.exists():
+        with open(PVK_PATH, "r") as f:
+            return json.load(f)
+
+    if all(
+        len(os.environ.get(e, "")) > 0
+        for e in ["NETWORK_NAME", "AWS_DEPLOY_SECRETS_ID", "AWS_DEPLOY_SECRETS_KEY"]
+    ):
+        archive_name = f"node-identities-{os.environ['NETWORK_NAME']}.tgz"
+        _, local_archive_path = tempfile.mkstemp(suffix=archive_name)
+        try:
+            subpv(
+                (
+                    "aws s3 cp s3://ndau-deploy-secrets/"
+                    f"{archive_name} {local_archive_path}"
+                ),
+                env={
+                    "AWS_ACCESS_KEY_ID": os.environ["AWS_DEPLOY_SECRETS_ID"],
+                    "AWS_SECRET_ACCESS_KEY": os.environ["AWS_DEPLOY_SECRETS_KEY"],
+                },
+            )
+            with tarfile.open(local_archive_path) as tf:
+                id0 = tf.extractfile("node-identity-0.tgz")
+                with tarfile.open(fileobj=id0) as tf0:
+                    pvkj = tf0.extractfile("tendermint/config/priv_validator_key.json")
+                    return json.load(pvkj)
+        finally:
+            Path(local_archive_path).unlink()
+
+    raise Exception(
+        "priv_validator_key.json not found locally and "
+        "insufficient env keys to get it from s3"
+    )
+
+
 def test_command_validator_change(
     ndau, ndau_suppress_err, keytool, set_up_account, node_rules_account
 ):
@@ -366,16 +423,10 @@ def test_command_validator_change(
     # standardized location. If that's not in fact the case, then we have to
     # just skip this test.
 
-    PVK_PATH = os.path.expanduser(
-        "~/.localnet/data/tendermint-ndau-0/config/priv_validator_key.json"
-    )
-
     try:
-        with open(PVK_PATH, "r") as f:
-            pvk = json.load(f)
-    except FileNotFoundError:
-        pytest.skip("validator info not found")
-    print(pvk)
+        pvk = get_pvk()
+    except Exception:
+        pytest.skip("failed to get private validator keys")
 
     # Get info about the connected validator
     info = json.loads(ndau("info"))

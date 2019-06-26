@@ -13,7 +13,7 @@ def ndenv(*extras):
     If any more are desired, just pass in their names as string arguments.
     """
     env = {}
-    for var in ("PATH", "HOME", "TMHOME", "NDAUHOME" ) + extras:
+    for var in ("PATH", "HOME", "TMHOME", "NDAUHOME") + extras:
         if os.environ.get(var) is not None:
             env[var] = os.environ[var]
     return env
