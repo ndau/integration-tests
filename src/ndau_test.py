@@ -3,7 +3,6 @@
 import base64
 import json
 import os
-import pytest
 import tarfile
 import tempfile
 import toml
@@ -423,18 +422,12 @@ def test_command_validator_change(
     # standardized location. If that's not in fact the case, then we have to
     # just skip this test.
 
-    try:
-        pvk = get_pvk()
-    except Exception:
-        pytest.skip("failed to get private validator keys")
+    pvk = get_pvk()
 
     # Get info about the connected validator
     info = json.loads(ndau("info"))
     assert info["validator_info"] is not None
-    if info["validator_info"]["address"] != pvk["address"]:
-        pytest.skip("not connected to localnet node 0")
-
-    assert info["validator_info"]["pub_key"] is not None
+    assert info["validator_info"]["address"] == pvk["address"]
 
     info_pkb = bytes(info["validator_info"]["pub_key"])
     pvk_pkb = base64.b64decode(pvk["pub_key"]["value"])
@@ -500,8 +493,7 @@ def test_command_validator_change(
         acct_data["validationKeys"].sort()
         pubkeys.sort()
 
-        if acct_data["validationKeys"] != pubkeys:
-            pytest.skip("localnet-0 is already claimed with unknown validation keys")
+        assert acct_data["validationKeys"] == pubkeys
 
     # now update ndautool.toml
     with open(conf_path, "w") as f:
@@ -512,19 +504,7 @@ def test_command_validator_change(
             f"signable-bytes setvalidation", text=True, input=json.dumps(claim)
         )
         claim["signature"] = keytool(f"sign {ndpvt} {txb64} --b64")
-        stdout = ndau_suppress_err(
-            "send setvalidation", text=True, input=json.dumps(claim)
-        )
-
-        if len(stdout.strip()) > 0:
-            # if the claim produced output, it didn't work for some reason
-            # the most likely reason is that the blockchain already has claim
-            # data for this account. Because it's not HD, we can't recover it.
-            # therefore, we have to just skip this test this time
-            pytest.skip(
-                "localnet-0 account already claimed with unknown keys; "
-                f"stdout:\n{stdout}"
-            )
+        stdout = ndau("send setvalidation", text=True, input=json.dumps(claim))
 
     # rfe enough ndau to stake
     ndau(f'rfe 1000 {ln0["name"]}')
