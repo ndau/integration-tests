@@ -18,6 +18,7 @@ from src.util import constants
 from src.util.subp import subpv, ndenv
 from src.util.tx_fees import ensure_tx_fees
 
+
 def pytest_addoption(parser):
     """See https://docs.pytest.org/en/latest/example/simple.html."""
     parser.addoption(
@@ -129,15 +130,24 @@ def get_ndau_tmhome_dir(use_kub, keeptemp):
         shutil.rmtree(tmhome_dir, True)
 
 
-@pytest.fixture(scope="session")
-def ndautool_path():
+def findpath(name):
     cmds = Path(os.path.expandvars("$GOPATH/src/github.com/oneiro-ndev/commands"))
-    for subpath in ("ndau", "cmd/ndau/ndau"):
+    for subpath in (name, f"cmd/{name}/{name}"):
         p = cmds / subpath
         if p.exists() and p.is_file() and p.stat().st_mode & 1 == 1:
             # file exists and u-x bit is set
             return p
-    raise Exception("ndautool not found")
+    raise Exception(f"{name} not found")
+
+
+@pytest.fixture(scope="session")
+def ndautool_path():
+    return findpath("ndau")
+
+
+@pytest.fixture(scope="session")
+def keytool_path():
+    return findpath("keytool")
 
 
 @pytest.fixture(scope="session")
@@ -149,21 +159,13 @@ def netconf(is_localnet, node_net):
             "nodenet1_rpc": str(constants.LOCALNET1_RPC),
         }
 
-    node_url_config = ndenv("NODE_ADDRESS", "NODE_0_RPC", "NODE_1_RPC")
-
-    if node_url_config["NODE_ADDRESS"] is None:
-        node_url_config["NODE_ADDRESS"] = constants.DEFAULT_REMOTE_ADDRESS
-
-    if node_url_config["NODE_0_RPC"] is None:
-        node_url_config["NODE_0_RPC"] = constants.DEFAULT_REMOTE_RPC_PORT_0
-
-    if node_url_config["NODE_1_RPC"] is None:
-        node_url_config["NODE_1_RPC"] = constants.DEFAULT_REMOTE_RPC_PORT_1
-
     return {
-        "address": node_url_config["NODE_ADDRESS"],
-        "nodenet0_rpc": node_url_config["NODE_0_RPC"],
-        "nodenet1_rpc": node_url_config["NODE_1_RPC"],
+        name: os.environ.get(env, default)
+        for env, name, default in [
+            ("NODE_ADDRESS", "address", constants.DEFAULT_REMOTE_ADDRESS),
+            ("NODE_0_RPC", "nodenet0_rpc", constants.DEFAULT_REMOTE_RPC_PORT_0),
+            ("NODE_1_RPC", "nodenet1_rpc", constants.DEFAULT_REMOTE_RPC_PORT_1),
+        ]
     }
 
 
@@ -201,6 +203,22 @@ def ndau(ndautool_path, netconf, keeptemp, use_kub):
             shutil.move(temp_conf_path, conf_path)
         else:
             os.remove(conf_path)
+
+
+@pytest.fixture(scope="session")
+def keytool(keytool_path):
+    """
+    Fixture providing a ndau function.
+    """
+
+    def kt(cmd, **kwargs):
+        try:
+            return subpv(f"{keytool_path} {cmd}", env=ndenv(), **kwargs)
+        except subprocess.CalledProcessError as e:
+            print(e.stdout)
+            raise
+
+    return kt
 
 
 @pytest.fixture(scope="session")
@@ -332,10 +350,28 @@ def zero_sib(ndau, rfe_to_rp):
 
 @pytest.fixture
 def max_sib(ndau, rfe_to_rp):
-    target_price = json.loads(ndau("sib"))["TargetPrice"]
-    ndau(f"record-price --nanocents {target_price // 2}")
+    ndau(f"record-price --nanocents 1")
+    # we can't validate any particular number for the outcome of SIB; we've
+    # already changed the SIB chaincode in a way which invalidated the previous
+    # check of its outcome. What we can do, at least, is ensure it is non-0 when
+    # the market price is the minimum legal value
 
-    # validate that we have max sib
+    # validate that we have some sib
     sib = json.loads(ndau("sib"))["SIB"]
-    assert sib == 500_000_000_000
+    assert sib > 0
+
+
+@pytest.fixture(scope="session")
+def node_rules_account(ndau, rfe):
+    address = json.loads(ndau(f"sysvar get NodeRulesAccountAddress"))[
+        "NodeRulesAccountAddress"
+    ][0]
+    data = json.loads(ndau(f"account query -a={address}"))
+    if data["stake_rules"] is None:
+        raise Exception(
+            "rules account is not configured; must manually set stake rules for "
+            f"{address}"
+        )
+
+    return address
 
