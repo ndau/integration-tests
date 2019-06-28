@@ -10,6 +10,7 @@ import os.path
 from pathlib import Path
 import pytest
 import shutil
+import socket
 import subprocess
 import tempfile
 import toml
@@ -33,21 +34,6 @@ def pytest_addoption(parser):
         default=False,
         help="keep temporary files for debugging failures",
     )
-    parser.addoption(
-        "--net",
-        action="store",
-        default="localnet",
-        help="which node net to use, e.g. devnet or localnet",
-    )
-    parser.addoption(
-        "--ndauapi",
-        default="http://localhost:3030",
-        help=(
-            "url and port where the ndauapi is listening. "
-            "set to empty to disable api tests. "
-            "default: http://localhost:3030"
-        ),
-    )
 
 
 @pytest.fixture(scope="session")
@@ -56,28 +42,18 @@ def verbose(request):
 
 
 @pytest.fixture(scope="session")
-def ndauapi(request):
-    return request.config.getoption("ndauapi")
+def host_ip():
+    yield socket.gethostbyname(socket.gethostname())
+
+
+@pytest.fixture(scope="session")
+def ndauapi(request, host_ip):
+    return f"http://{host_ip}:{constants.LOCALNET0_NDAUAPI}"
 
 
 @pytest.fixture(scope="session")
 def keeptemp(request):
     return request.config.getoption("--keeptemp")
-
-
-@pytest.fixture(scope="session")
-def node_net(request):
-    return request.config.getoption("--net")
-
-
-@pytest.fixture(scope="session")
-def is_localnet(node_net):
-    return node_net.lower().startswith("local")
-
-
-@pytest.fixture(scope="session")
-def use_kub(is_localnet):
-    return not is_localnet
 
 
 def pytest_collection_modifyitems(config, items):
@@ -92,42 +68,27 @@ def pytest_collection_modifyitems(config, items):
         for item in items:
             if "meta" in item.keywords:
                 item.add_marker(skip_meta)
-    if config.getoption("--ndauapi") == "":
-        skip_api = pytest.mark.skip(reason="skipped: ndauapi not listening")
-        for item in items:
-            if "api" in item.keywords:
-                item.add_marker(skip_api)
 
 
 @pytest.fixture(scope="session")
-def get_ndauhome_dir(use_kub, keeptemp):
-    if use_kub:
-        ndauhome_dir = tempfile.mkdtemp(prefix="ndauhome-", dir="/tmp")
-    else:
-        # Use the local ndau home directory that's already there,
-        # set up by the localnet.
-        ndauhome_dir = os.path.expanduser("~/.localnet/data/ndau-0")
-        # Make sure it's really there.  If it isn't, the user hasn't
-        # set up a local server.
-        assert os.path.isdir(ndauhome_dir)
+def get_ndauhome_dir():
+    # Use the local ndau home directory that's already there,
+    # set up by the localnet.
+    ndauhome_dir = os.path.expanduser("~/.localnet/data/ndau-0")
+    # Make sure it's really there.  If it isn't, the user hasn't
+    # set up a local server.
+    assert os.path.isdir(ndauhome_dir)
     yield ndauhome_dir
-    if use_kub and not keeptemp:
-        shutil.rmtree(ndauhome_dir, True)
 
 
 @pytest.fixture(scope="session")
-def get_ndau_tmhome_dir(use_kub, keeptemp):
-    if use_kub:
-        tmhome_dir = tempfile.mkdtemp(prefix="tmhome-", dir="/tmp")
-    else:
-        # Use the local tm home directory that's already there, set up by the localnet.
-        tmhome_dir = os.path.expanduser("~/.localnet/data/tendermint-ndau-0")
-        # Make sure it's really there.  If it isn't, the user hasn't
-        # set up a local server.
-        assert os.path.isdir(tmhome_dir)
+def get_ndau_tmhome_dir():
+    # Use the local tm home directory that's already there, set up by the localnet.
+    tmhome_dir = os.path.expanduser("~/.localnet/data/tendermint-ndau-0")
+    # Make sure it's really there.  If it isn't, the user hasn't
+    # set up a local server.
+    assert os.path.isdir(tmhome_dir)
     yield tmhome_dir
-    if use_kub and not keeptemp:
-        shutil.rmtree(tmhome_dir, True)
 
 
 def findpath(name):
@@ -151,26 +112,16 @@ def keytool_path():
 
 
 @pytest.fixture(scope="session")
-def netconf(is_localnet, node_net):
-    if is_localnet:
-        return {
-            "address": "localhost",
-            "nodenet0_rpc": str(constants.LOCALNET0_RPC),
-            "nodenet1_rpc": str(constants.LOCALNET1_RPC),
-        }
-
-    return {
-        name: os.environ.get(env, default)
-        for env, name, default in [
-            ("NODE_ADDRESS", "address", constants.DEFAULT_REMOTE_ADDRESS),
-            ("NODE_0_RPC", "nodenet0_rpc", constants.DEFAULT_REMOTE_RPC_PORT_0),
-            ("NODE_1_RPC", "nodenet1_rpc", constants.DEFAULT_REMOTE_RPC_PORT_1),
-        ]
+def netconf(host_ip):
+    yield {
+        "address": host_ip,
+        "nodenet0_rpc": str(constants.LOCALNET0_RPC),
+        "nodenet1_rpc": str(constants.LOCALNET1_RPC),
     }
 
 
 @pytest.fixture(scope="session")
-def ndau(ndautool_path, netconf, keeptemp, use_kub):
+def ndau(ndautool_path, netconf, keeptemp):
     """
     Fixture providing a ndau function.
     """
