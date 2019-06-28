@@ -10,7 +10,6 @@ import os.path
 from pathlib import Path
 import pytest
 import shutil
-import socket
 import subprocess
 import tempfile
 import toml
@@ -42,13 +41,8 @@ def verbose(request):
 
 
 @pytest.fixture(scope="session")
-def host_ip():
-    yield socket.gethostbyname(socket.gethostname())
-
-
-@pytest.fixture(scope="session")
-def ndauapi(request, host_ip):
-    return f"http://{host_ip}:{constants.LOCALNET0_NDAUAPI}"
+def ndauapi(request):
+    return f"http://localhost:{constants.LOCALNET0_NDAUAPI}"
 
 
 @pytest.fixture(scope="session")
@@ -112,9 +106,9 @@ def keytool_path():
 
 
 @pytest.fixture(scope="session")
-def netconf(host_ip):
-    yield {
-        "address": host_ip,
+def netconf():
+    return {
+        "address": "localhost",
         "nodenet0_rpc": str(constants.LOCALNET0_RPC),
         "nodenet1_rpc": str(constants.LOCALNET1_RPC),
     }
