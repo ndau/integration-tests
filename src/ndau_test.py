@@ -17,7 +17,7 @@ def test_get_ndau_status(ndau):
     """`ndautool` can connect to `ndau node` and get status."""
     info = json.loads(ndau("info"))
     moniker = info["node_info"]["moniker"]
-    assert moniker == f"{constants.LOCALNET_MONIKER}-0"
+    assert moniker == constants.LOCALNET0_MONIKER
 
 
 def test_create_account(ndau, rfe, zero_tx_fees):

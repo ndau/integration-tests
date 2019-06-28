@@ -110,7 +110,6 @@ def netconf():
     return {
         "address": "localhost",
         "nodenet0_rpc": str(constants.LOCALNET0_RPC),
-        "nodenet1_rpc": str(constants.LOCALNET1_RPC),
     }
 
 
