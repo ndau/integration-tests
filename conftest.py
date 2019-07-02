@@ -33,6 +33,11 @@ def pytest_addoption(parser):
         default=False,
         help="keep temporary files for debugging failures",
     )
+    parser.addoption(
+        "--ip",
+        default="localhost",
+        help="ip of the localnet-0 node",
+    )
 
 
 @pytest.fixture(scope="session")
@@ -41,13 +46,18 @@ def verbose(request):
 
 
 @pytest.fixture(scope="session")
-def ndauapi(request):
-    return f"http://localhost:{constants.LOCALNET0_NDAUAPI}"
+def ndauapi(localnet0_ip):
+    return f"http://{localnet0_ip}:{constants.LOCALNET0_NDAUAPI}"
 
 
 @pytest.fixture(scope="session")
 def keeptemp(request):
     return request.config.getoption("--keeptemp")
+
+
+@pytest.fixture(scope="session")
+def localnet0_ip(request):
+    return request.config.getoption("--ip")
 
 
 def pytest_collection_modifyitems(config, items):
@@ -106,9 +116,9 @@ def keytool_path():
 
 
 @pytest.fixture(scope="session")
-def netconf():
+def netconf(localnet0_ip):
     return {
-        "address": "localhost",
+        "address": localnet0_ip,
         "nodenet0_rpc": str(constants.LOCALNET0_RPC),
     }
 
