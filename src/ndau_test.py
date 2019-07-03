@@ -481,19 +481,23 @@ def test_command_validator_change(
         acct_data = json.loads(ndau("account query -a=" + ln0["address"]))
         pubkeys = [t["public"] for t in ln0["transfer"]]
 
-        if len(acct_data.get("validationKeys", [])) == 0:
+        valkeys = acct_data.get("validationKeys", [])
+        if valkeys is None:
+            valkeys = []
+        if len(valkeys) == 0:
+            valkeys = pubkeys
             claim = {
                 "target": ln0["address"],
                 "ownership": ndpub,
-                "validation_keys": pubkeys,
+                "validation_keys": valkeys,
                 "validation_script": None,
                 "sequence": 1 + acct_data["sequence"],
             }
 
-        acct_data["validationKeys"].sort()
+        valkeys.sort()
         pubkeys.sort()
 
-        assert acct_data["validationKeys"] == pubkeys
+        assert valkeys == pubkeys
 
     # now update ndautool.toml
     with open(conf_path, "w") as f:

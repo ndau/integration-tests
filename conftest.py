@@ -322,10 +322,7 @@ def node_rules_account(ndau, rfe):
     ][0]
     data = json.loads(ndau(f"account query -a={address}"))
     if data["stake_rules"] is None:
-        raise Exception(
-            "rules account is not configured; must manually set stake rules for "
-            f"{address}"
-        )
+        ndau(f"account set-stake-rules {address} {constants.ZERO_FEE_SCRIPT}")
 
     return address
 
