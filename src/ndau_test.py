@@ -380,7 +380,7 @@ def get_pvk():
             return json.load(f)
 
     # Try again, but check in a place that we use in the Circle CI integration job.
-    PVK_PATH = "/priv_validator_key.json"
+    PVK_PATH = Path("/priv_validator_key.json")
 
     if PVK_PATH.exists():
         with open(PVK_PATH, "r") as f:
