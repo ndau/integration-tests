@@ -13,11 +13,11 @@ from src.util.subp import subpv
 from time import sleep
 
 
-def test_get_ndau_status(node_net, ndau):
+def test_get_ndau_status(ndau):
     """`ndautool` can connect to `ndau node` and get status."""
     info = json.loads(ndau("info"))
     moniker = info["node_info"]["moniker"]
-    assert moniker == f"{node_net}-0"
+    assert moniker == constants.LOCALNET0_MONIKER
 
 
 def test_create_account(ndau, rfe, zero_tx_fees):
@@ -361,53 +361,36 @@ def get_pvk():
     """
     Get the private validator key JSON file for node 0 of the appropriate network.
 
-    Tries to find the file for localnet node 0. If that fails, tries to download
-    the file appropriate for devnet-0 and use that.
+    Tries to find the file for localnet node 0. If that fails, tries to find
+    the file on a localnet running in the Circle CI integration job.
 
     Returns the parsed JSON data from the file, or an exception.
     """
+
+    name = "priv_validator_key.json"
+
+    # Look for the file on localnet.
     PVK_PATH = (
         Path.home()
         / ".localnet"
         / "data"
         / "tendermint-ndau-0"
         / "config"
-        / "priv_validator_key.json"
+        / name
     )
 
     if PVK_PATH.exists():
         with open(PVK_PATH, "r") as f:
             return json.load(f)
 
-    if all(
-        len(os.environ.get(e, "")) > 0
-        for e in ["NETWORK_NAME", "AWS_DEPLOY_SECRETS_ID", "AWS_DEPLOY_SECRETS_KEY"]
-    ):
-        archive_name = f"node-identities-{os.environ['NETWORK_NAME']}.tgz"
-        _, local_archive_path = tempfile.mkstemp(suffix=archive_name)
-        try:
-            subpv(
-                (
-                    "aws s3 cp s3://ndau-deploy-secrets/"
-                    f"{archive_name} {local_archive_path}"
-                ),
-                env={
-                    "AWS_ACCESS_KEY_ID": os.environ["AWS_DEPLOY_SECRETS_ID"],
-                    "AWS_SECRET_ACCESS_KEY": os.environ["AWS_DEPLOY_SECRETS_KEY"],
-                },
-            )
-            with tarfile.open(local_archive_path) as tf:
-                id0 = tf.extractfile("node-identity-0.tgz")
-                with tarfile.open(fileobj=id0) as tf0:
-                    pvkj = tf0.extractfile("tendermint/config/priv_validator_key.json")
-                    return json.load(pvkj)
-        finally:
-            Path(local_archive_path).unlink()
+    # Try again, but check in a place that we use in the Circle CI integration job.
+    PVK_PATH = Path(f"/{name}")
 
-    raise Exception(
-        "priv_validator_key.json not found locally and "
-        "insufficient env keys to get it from s3"
-    )
+    if PVK_PATH.exists():
+        with open(PVK_PATH, "r") as f:
+            return json.load(f)
+
+    raise Exception(f"{name} not found locally")
 
 
 def test_command_validator_change(
@@ -481,19 +464,23 @@ def test_command_validator_change(
         acct_data = json.loads(ndau("account query -a=" + ln0["address"]))
         pubkeys = [t["public"] for t in ln0["transfer"]]
 
-        if len(acct_data.get("validationKeys", [])) == 0:
+        valkeys = acct_data.get("validationKeys", [])
+        if valkeys is None:
+            valkeys = []
+        if len(valkeys) == 0:
+            valkeys = pubkeys
             claim = {
                 "target": ln0["address"],
                 "ownership": ndpub,
-                "validation_keys": pubkeys,
+                "validation_keys": valkeys,
                 "validation_script": None,
                 "sequence": 1 + acct_data["sequence"],
             }
 
-        acct_data["validationKeys"].sort()
+        valkeys.sort()
         pubkeys.sort()
 
-        assert acct_data["validationKeys"] == pubkeys
+        assert valkeys == pubkeys
 
     # now update ndautool.toml
     with open(conf_path, "w") as f:
@@ -501,10 +488,10 @@ def test_command_validator_change(
 
     if claim is not None:
         txb64 = ndau(
-            f"signable-bytes setvalidation", text=True, input=json.dumps(claim)
+            f"signable-bytes setvalidation", input=json.dumps(claim)
         )
         claim["signature"] = keytool(f"sign {ndpvt} {txb64} --b64")
-        stdout = ndau("send setvalidation", text=True, input=json.dumps(claim))
+        stdout = ndau("send setvalidation", input=json.dumps(claim))
 
     # rfe enough ndau to stake
     ndau(f'rfe 1000 {ln0["name"]}')

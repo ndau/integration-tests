@@ -29,4 +29,3 @@ def load(
         if locs[label] is not None:
             conf[repo.replace("_", "-")]["label"] = locs[label]
     return conf
-

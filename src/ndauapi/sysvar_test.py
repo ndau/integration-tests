@@ -96,4 +96,3 @@ def test_sysvar_set(ndauapi, ndau):
     assert tx["value"] == base64.b64encode(msgpack.dumps(value)).decode("utf8")
     assert tx["sequence"] == 0
     assert tx["signatures"] is None or tx["signatures"] == []  # doesn't matter which
-
