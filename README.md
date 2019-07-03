@@ -24,6 +24,7 @@ Tests are handled via the `pytest` unit-testing tool. To run the entire test sui
 - `--runslow` if set runs tests which have been marked as slow. None of these tests are particularly speedy due to the heavy fixtures in play, but some are particularly poky.
 - `--skipmeta` if set skips metatests. Metatests are tests which verify that the fixtures in use to fetch and build the various dependencies are all working properly.
 - `--keeptemp` if set keeps temp files and directories around to help debug test failures.  Normally all files and directories created during testing will be removed at the end of the tests.  Temporary files will normally be named in the form of /tmp/XXXXXX_YYYYYYYY, where X's are the tool or component name, and Y's are a randomly generated string.
+- `--ip` set to the IP of the `localnet-0` node.  If omitted, it defaults to `localhost`.  This is used by the integration tests to send requests to the network.  Only one node is needed for integration tests to run against.
 
 ## Testing Strategy
 
