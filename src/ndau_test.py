@@ -512,10 +512,10 @@ def test_command_validator_change(
 
     if claim is not None:
         txb64 = ndau(
-            f"signable-bytes setvalidation", text=True, input=json.dumps(claim)
+            f"signable-bytes setvalidation", input=json.dumps(claim)
         )
         claim["signature"] = keytool(f"sign {ndpvt} {txb64} --b64")
-        stdout = ndau("send setvalidation", text=True, input=json.dumps(claim))
+        stdout = ndau("send setvalidation", input=json.dumps(claim))
 
     # rfe enough ndau to stake
     ndau(f'rfe 1000 {ln0["name"]}')
