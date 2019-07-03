@@ -379,6 +379,13 @@ def get_pvk():
         with open(PVK_PATH, "r") as f:
             return json.load(f)
 
+    # Try again, but check in a place that we use in the Circle CI integration job.
+    PVK_PATH = "/priv_validator_key.json"
+
+    if PVK_PATH.exists():
+        with open(PVK_PATH, "r") as f:
+            return json.load(f)
+
     if all(
         len(os.environ.get(e, "")) > 0
         for e in ["NETWORK_NAME", "AWS_DEPLOY_SECRETS_ID", "AWS_DEPLOY_SECRETS_KEY"]
