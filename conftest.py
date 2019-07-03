@@ -33,11 +33,7 @@ def pytest_addoption(parser):
         default=False,
         help="keep temporary files for debugging failures",
     )
-    parser.addoption(
-        "--ip",
-        default="localhost",
-        help="ip of the localnet-0 node",
-    )
+    parser.addoption("--ip", default="localhost", help="ip of the localnet-0 node")
 
 
 @pytest.fixture(scope="session")
@@ -117,10 +113,7 @@ def keytool_path():
 
 @pytest.fixture(scope="session")
 def netconf(localnet0_ip):
-    return {
-        "address": localnet0_ip,
-        "nodenet0_rpc": str(constants.LOCALNET0_RPC),
-    }
+    return {"address": localnet0_ip, "nodenet0_rpc": str(constants.LOCALNET0_RPC)}
 
 
 @pytest.fixture(scope="session")
@@ -325,4 +318,3 @@ def node_rules_account(ndau, rfe):
         ndau(f"account set-stake-rules {address} {constants.ZERO_FEE_SCRIPT}")
 
     return address
-

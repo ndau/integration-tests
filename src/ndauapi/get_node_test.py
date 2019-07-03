@@ -15,4 +15,3 @@ def node_id(ndau):
 def test_netinfo(ndauapi, node_id):
     resp = requests.get(f"{ndauapi}/node/{node_id}")
     assert resp.status_code == requests.codes.ok
-

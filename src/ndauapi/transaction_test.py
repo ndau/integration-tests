@@ -47,7 +47,7 @@ def claim_txhash(claim_signable_bytes):
     return (
         base64.urlsafe_b64encode(hashlib.md5(claim_signable_bytes).digest())
         .decode("utf-8")
-        .strip("=") # tx hashes do not include base64 padding characters
+        .strip("=")  # tx hashes do not include base64 padding characters
     )
 
 
@@ -99,11 +99,11 @@ def test_tx_prevalidate_and_submit(ndauapi, ndau, ndautool_toml):
     txhash = (
         base64.urlsafe_b64encode(hashlib.md5(signable_bytes).digest())
         .decode("utf-8")
-        .strip("=") # tx hashes do not include base64 padding characters
+        .strip("=")  # tx hashes do not include base64 padding characters
     )
 
     # We expect the next transactions to succeed when posted.
-    want_body = f'"hash":"{txhash}"' 
+    want_body = f'"hash":"{txhash}"'
     want_status = requests.codes.ok
 
     # Prevalidate new tx.
