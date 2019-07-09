@@ -75,9 +75,6 @@ def test_genesis(
     ndau(f"account set-validation {node_account}")
     rfe(stake_ndau, node_account)
 
-    # Establish the node registration staking rules
-    ndau(f"account set-stake-rules {node_rules_account} oAAgiA==")
-
     # Stake to node rules account
     ndau(
         f"account stake {node_account} "
@@ -454,18 +451,18 @@ def test_command_validator_change(
 
     # Set validation rules for the account if it has none
     set_validation = None
-    if "transfer" not in ln0 or len(ln0["transfer"]) == 0:
+    if "validation" not in ln0 or len(ln0["validation"]) == 0:
         # in order for this test to be repeatable, we need predictable validation keys
         # the ndau tool can't do this for us directly, so we have to work around it.
         # these keys are arbitrary constants
-        ln0["transfer"] = [
+        ln0["validation"] = [
             {
                 "public": "npuba8jadtbbebbp5iixnbv2kp5suzt35am2zu4gjg2e9t4ghzci97nj7a5mnrvx823883tpfa3f",  # noqa: E501 this line can't usefully be shortened
                 "private": "npvtayjadtcbiahcbm8k5ik5piz5n86itab9ffx7qf244ayhnaqwz5fw3c4aj3zmqsy7wekya36fg72jm267sf6m3pdevncr27dd5ter8ye8spxyh349uxz8s684",  # noqa: E501 this one either
             }
         ]
         acct_data = json.loads(ndau("account query -a=" + ln0["address"]))
-        pubkeys = [t["public"] for t in ln0["transfer"]]
+        pubkeys = [t["public"] for t in ln0["validation"]]
 
         valkeys = acct_data.get("validationKeys", [])
         if valkeys is None:
