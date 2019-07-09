@@ -265,7 +265,7 @@ def rfe(ndau, rfe_to_rfe):
 @pytest.fixture(scope="session")
 def set_up_account(ndau, rfe):
     """
-    Helper function for creating a new account, rfe'ing to it, claiming it.
+    Helper function for creating a new account, rfe'ing to it, setting validation rules.
     """
 
     def rf(account, recovery_phrase=None):
@@ -274,7 +274,7 @@ def set_up_account(ndau, rfe):
         else:
             ndau(f"account recover {account} {recovery_phrase}")
         rfe(10, account)
-        ndau(f"account claim {account}")
+        ndau(f"account set-validation {account}")
 
     return rf
 

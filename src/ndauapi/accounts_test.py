@@ -13,7 +13,7 @@ def accounts_with_history(ndau, set_up_account):
     for _ in range(3):
         name = random_string("test-acct")
         names.append(name)
-        # JSG use "set_up_account" instead of new, rfe, claim
+        # JSG use "set_up_account" instead of new, rfe, set-validation
         set_up_account(name)
     for _ in range(5):
         for source in names:
