@@ -12,32 +12,32 @@ from src.util.random_string import random_string
 
 
 @pytest.fixture(scope="session")
-def claim_json(ndau):
+def set_validation_json(ndau):
     name = random_string("json-acct")
     ndau(f"account new {name}")
-    # JSG must rfe before claim to pay for tx fees
+    # JSG must rfe before set_validation to pay for tx fees
     ndau(f"rfe 10 {name}")
-    return json.loads(ndau(f"-j account claim {name}"))
+    return json.loads(ndau(f"-j account set-validation {name}"))
 
 
 @pytest.fixture(scope="session")
-def claim_file(claim_json):
+def set_validation_file(set_validation_json):
     with NamedTemporaryFile(mode="w+t") as tf:
-        json.dump(claim_json, tf)
+        json.dump(set_validation_json, tf)
         tf.flush()
         yield tf.name
 
 
 @pytest.fixture(scope="session")
-def claim_signable_bytes(ndau, claim_file):
-    signable_bytes_b64 = ndau(f"signable-bytes --strip claim {claim_file}")
+def set_validation_signable_bytes(ndau, set_validation_file):
+    signable_bytes_b64 = ndau(f"signable-bytes --strip set-validation {set_validation_file}")
     return base64.b64decode(signable_bytes_b64, validate=True)
 
 
 @pytest.fixture(scope="session")
-def claim_txhash(claim_signable_bytes):
+def set_validation_txhash(set_validation_signable_bytes):
     """
-    Compute the tx hash of the claim tx.
+    Compute the tx hash of the set_validation tx.
 
     Defined in
     https://github.com/oneiro-ndev/metanode/
@@ -45,15 +45,15 @@ def claim_txhash(claim_signable_bytes):
             pkg/meta/transaction/transactable.go#L163-L166
     """
     return (
-        base64.urlsafe_b64encode(hashlib.md5(claim_signable_bytes).digest())
+        base64.urlsafe_b64encode(hashlib.md5(set_validation_signable_bytes).digest())
         .decode("utf-8")
         .strip("=")  # tx hashes do not include base64 padding characters
     )
 
 
 @pytest.fixture(scope="session")
-def claim(ndau, claim_file):
-    return ndau(f"-v send claim {claim_file}")
+def set_validation(ndau, set_validation_file):
+    return ndau(f"-v send set-validation {set_validation_file}")
 
 
 @pytest.mark.api
@@ -66,11 +66,11 @@ def claim(ndau, claim_file):
         (True, requests.codes.ok, '"Tx":{"Nonce":'),
     ],
 )
-def test_tx_hash(ndauapi, claim, claim_txhash, send_hash, want_status, want_body):
+def test_tx_hash(ndauapi, set_validation, set_validation_txhash, send_hash, want_status, want_body):
     if send_hash is None:
         txhash = ""
     elif send_hash:
-        txhash = claim_txhash
+        txhash = set_validation_txhash
     else:
         txhash = "invalid-hash"
 

@@ -32,7 +32,7 @@ def test_create_account(ndau, rfe, zero_tx_fees):
     # check that account now exists
     assert any(_random_string in id_line for id_line in new_ids)
     id_line = [s for s in new_ids if _random_string in s]
-    # check that account is not claimed (has 0 tx keys)
+    # check that account has no validation keys
     assert "(0 tr keys)" in id_line[0]
     account_data = json.loads(ndau(f"account query {_random_string}"))
     assert account_data["validationKeys"] is None
@@ -43,8 +43,8 @@ def test_create_account(ndau, rfe, zero_tx_fees):
     account_data = json.loads(ndau(f"account query {_random_string}"))
     # check that account balance is 10 ndau
     assert account_data["balance"] == orig_napu
-    # claim account, and check that account now has validation keys
-    ndau(f"account claim {_random_string}")
+    # set validation, and check that account now has validation keys
+    ndau(f"account set-validation {_random_string}")
     account_data = json.loads(ndau(f"account query {_random_string}"))
     assert account_data["validationKeys"] is not None
 
@@ -53,10 +53,10 @@ def test_genesis(
     ndau, rfe, ndau_suppress_err, netconf, zero_tx_fees, node_rules_account
 ):
     # Set up a purchaser account.  We don't have to rfe to it to pay for
-    # 0-napu claim tx fee.
+    # 0-napu set-validation tx fee.
     purchaser_account = random_string("genesis-purchaser")
     ndau(f"account new {purchaser_account}")
-    ndau(f"account claim {purchaser_account}")
+    ndau(f"account set-validation {purchaser_account}")
 
     # Put a lot of ndau in there so small EAI fee percentages are non-zero.
     ndau_locked = 1_000_000
@@ -71,8 +71,8 @@ def test_genesis(
     stake_ndau = 1000
     node_account = random_string("genesis-node")
     ndau(f"account new {node_account}")
-    # We can claim the accont before funding it since tx fees are zero.
-    ndau(f"account claim {node_account}")
+    # We can set-validation the accont before funding it since tx fees are zero.
+    ndau(f"account set-validation {node_account}")
     rfe(stake_ndau, node_account)
 
     # Stake to node rules account
@@ -149,7 +149,7 @@ def test_genesis(
     # have to rfe to it.
     reward_account = random_string("genesis-node-reward")
     ndau(f"account new {reward_account}")
-    ndau(f"account claim {reward_account}")
+    ndau(f"account set-validation {reward_account}")
     ndau(f"account set-rewards-target {node_account} {reward_account}")
 
     nnr_result = ndau_suppress_err(f"nnr 0")
@@ -190,7 +190,7 @@ def test_transfer(ndau, nonzero_tx_fees, set_up_account, zero_sib):
     xfer_ndau = 1  # We'll transfer this amount
     xfer_napu = int(xfer_ndau * 1e8)
 
-    # One napu for the claim transaction.
+    # One napu for the set-validation transaction.
     account_data1 = json.loads(ndau(f"account query {account1}"))
     assert account_data1["balance"] == orig_napu - constants.ONE_NAPU_FEE
 
@@ -198,23 +198,23 @@ def test_transfer(ndau, nonzero_tx_fees, set_up_account, zero_sib):
     ndau(f"transfer {xfer_ndau} {account1} {account2}")
     account_data1 = json.loads(ndau(f"account query {account1}"))
     account_data2 = json.loads(ndau(f"account query {account2}"))
-    # Subtract one napu for the claim transaction, one for the transfer.
+    # Subtract one napu for the set-validation transaction, one for the transfer.
     assert (
         account_data1["balance"] == orig_napu - xfer_napu - 2 * constants.ONE_NAPU_FEE
     )
     assert account_data1["lock"] is None
-    # Subtract one napu for the claim transaction.
+    # Subtract one napu for the set-validation transaction.
     assert account_data2["balance"] == orig_napu + xfer_napu - constants.ONE_NAPU_FEE
     assert account_data2["lock"] is None
 
 
 def test_transfer_lock(ndau, nonzero_tx_fees, set_up_account, zero_sib):
     """Test TransferLock transaction"""
-    # Set up source claimed account with funds.
+    # Set up source account with funds.
     account1 = random_string("xferlock1")
     set_up_account(account1)
 
-    # Create destination account, but don't claim or rfe to it
+    # Create destination account, but don't set-validation or rfe to it
     # (otherwise transfer-lock fails).
     account2 = random_string("xferlock2")
     ndau(f"account new {account2}")
@@ -224,7 +224,7 @@ def test_transfer_lock(ndau, nonzero_tx_fees, set_up_account, zero_sib):
     xfer_ndau = 1  # We'll transfer this amount
     xfer_napu = int(xfer_ndau * 1e8)
 
-    # One napu for the claim transaction.
+    # One napu for the set-validation transaction.
     account_data1 = json.loads(ndau(f"account query {account1}"))
     assert account_data1["balance"] == orig_napu - constants.ONE_NAPU_FEE
 
@@ -233,12 +233,12 @@ def test_transfer_lock(ndau, nonzero_tx_fees, set_up_account, zero_sib):
     ndau(f"transfer-lock {xfer_ndau} {account1} {account2} {lock_months}m")
     account_data1 = json.loads(ndau(f"account query {account1}"))
     account_data2 = json.loads(ndau(f"account query {account2}"))
-    # Subtract one napu for the claim transaction, one for the transfer-lock.
+    # Subtract one napu for the set-validation transaction, one for the transfer-lock.
     assert (
         account_data1["balance"] == orig_napu - xfer_napu - 2 * constants.ONE_NAPU_FEE
     )
     assert account_data1["lock"] is None
-    # No claim transaction, no fee.  Just gain the amount transferred.
+    # No set-validation transaction, no fee.  Just gain the amount transferred.
     assert account_data2["balance"] == xfer_napu
     assert account_data2["lock"] is not None
     assert account_data2["lock"]["unlocksOn"] is None
@@ -257,7 +257,7 @@ def test_transfer_with_sib(ndau, nonzero_tx_fees, set_up_account, max_sib):
     xfer_ndau = 1  # We'll transfer this amount
     xfer_napu = int(xfer_ndau * 1e8)
 
-    # One napu for the claim transaction.
+    # One napu for the set-validation transaction.
     account_data1 = json.loads(ndau(f"account query {account1}"))
     assert account_data1["balance"] == orig_napu - constants.ONE_NAPU_FEE
 
@@ -265,10 +265,10 @@ def test_transfer_with_sib(ndau, nonzero_tx_fees, set_up_account, max_sib):
     ndau(f"transfer {xfer_ndau} {account1} {account2}")
     account_data1 = json.loads(ndau(f"account query {account1}"))
     account_data2 = json.loads(ndau(f"account query {account2}"))
-    # Subtract one napu for the claim transaction, one for the transfer.
+    # Subtract one napu for the set-validation transaction, one for the transfer.
     assert account_data1["balance"] < orig_napu - xfer_napu - 2 * constants.ONE_NAPU_FEE
     assert account_data1["lock"] is None
-    # Subtract one napu for the claim transaction.
+    # Subtract one napu for the set-validation transaction.
     assert account_data2["balance"] == orig_napu + xfer_napu - constants.ONE_NAPU_FEE
     assert account_data2["lock"] is None
 
@@ -449,27 +449,27 @@ def test_command_validator_change(
         }
         cpd["accounts"].append(ln0)
 
-    # claim the account if it has no transfer keys
-    claim = None
-    if "transfer" not in ln0 or len(ln0["transfer"]) == 0:
+    # Set validation rules for the account if it has none
+    set_validation = None
+    if "validation" not in ln0 or len(ln0["validation"]) == 0:
         # in order for this test to be repeatable, we need predictable validation keys
         # the ndau tool can't do this for us directly, so we have to work around it.
         # these keys are arbitrary constants
-        ln0["transfer"] = [
+        ln0["validation"] = [
             {
                 "public": "npuba8jadtbbebbp5iixnbv2kp5suzt35am2zu4gjg2e9t4ghzci97nj7a5mnrvx823883tpfa3f",  # noqa: E501 this line can't usefully be shortened
                 "private": "npvtayjadtcbiahcbm8k5ik5piz5n86itab9ffx7qf244ayhnaqwz5fw3c4aj3zmqsy7wekya36fg72jm267sf6m3pdevncr27dd5ter8ye8spxyh349uxz8s684",  # noqa: E501 this one either
             }
         ]
         acct_data = json.loads(ndau("account query -a=" + ln0["address"]))
-        pubkeys = [t["public"] for t in ln0["transfer"]]
+        pubkeys = [t["public"] for t in ln0["validation"]]
 
         valkeys = acct_data.get("validationKeys", [])
         if valkeys is None:
             valkeys = []
         if len(valkeys) == 0:
             valkeys = pubkeys
-            claim = {
+            set_validation = {
                 "target": ln0["address"],
                 "ownership": ndpub,
                 "validation_keys": valkeys,
@@ -486,12 +486,12 @@ def test_command_validator_change(
     with open(conf_path, "w") as f:
         toml.dump(cpd, f)
 
-    if claim is not None:
+    if set_validation is not None:
         txb64 = ndau(
-            f"signable-bytes setvalidation", input=json.dumps(claim)
+            f"signable-bytes setvalidation", input=json.dumps(set_validation)
         )
-        claim["signature"] = keytool(f"sign {ndpvt} {txb64} --b64")
-        stdout = ndau("send setvalidation", input=json.dumps(claim))
+        set_validation["signature"] = keytool(f"sign {ndpvt} {txb64} --b64")
+        stdout = ndau("send setvalidation", input=json.dumps(set_validation))
 
     # rfe enough ndau to stake
     ndau(f'rfe 1000 {ln0["name"]}')
@@ -541,26 +541,26 @@ def test_command_validator_change(
     assert new_voting_power_was_set
 
 
-def test_claim_child_account(ndau, set_up_account):
-    """Test ClaimChildAccount transaction"""
+def test_create_child_account(ndau, set_up_account):
+    """Test CreateChildAccount transaction"""
 
     # Set up parent account.
-    parent_account = random_string("claim-parent")
+    parent_account = random_string("create-parent")
     set_up_account(parent_account)
 
     # Set up delegation account
     delegation_account = random_string("child-delegate")
     set_up_account(delegation_account)
 
-    # Declare a child account and claim it.
-    child_account = random_string("claim-child")
+    # Declare a child account and create it.
+    child_account = random_string("create-child")
     settlement_period = "2m3dt5h7m11s"
     ndau(
-        f"account claim-child {parent_account} {child_account} "
+        f"account create-child {parent_account} {child_account} "
         f"-p={settlement_period} {delegation_account}"
     )
 
-    # Ensure the child account was claimed properly.
+    # Ensure the child account was created properly.
     account_data = json.loads(ndau(f"account query {child_account}"))
     assert account_data["validationKeys"] is not None
     assert len(account_data["validationKeys"]) == 1
@@ -604,7 +604,7 @@ def test_change_sysvar(ndau, rfe_to_ssv):
 
 def test_account_attributes(ndau, ndau_suppress_err, set_up_account, rfe_to_ssv):
     """Test setting AccountAttributes system variable"""
-    # Clear the account_attributes if there are any, so we can claim the
+    # Clear the account_attributes if there are any, so we can use the
     # elephant account below.
     account_attributes = "{}"
     ndau(
