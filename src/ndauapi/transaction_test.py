@@ -63,7 +63,7 @@ def set_validation(ndau, set_validation_file):
         (None, requests.codes.bad, "txhash parameter required"),
         (False, requests.codes.ok, "null"),
         # just ensure we got a real-looking tx back
-        (True, requests.codes.ok, '"Tx":{"Nonce":'),
+        (True, requests.codes.ok, '"BlockHeight":'),
     ],
 )
 def test_tx_hash(ndauapi, set_validation, set_validation_txhash, send_hash, want_status, want_body):
