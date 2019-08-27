@@ -80,6 +80,31 @@ def test_tx_hash(ndauapi, set_validation, set_validation_txhash, send_hash, want
 
 
 @pytest.mark.api
+@pytest.mark.parametrize(
+    "send_hash,want_status,want_body",
+    [
+        (None, requests.codes.bad, "txhash parameter required"),
+        (False, requests.codes.ok, '{"Txs":null,"NextTxHash":""}'),
+        # just ensure we got a real-looking tx back
+        (True, requests.codes.ok, '"BlockHeight":'),
+    ],
+)
+def test_tx_before_hash(
+    ndauapi, set_validation, set_validation_txhash, send_hash, want_status, want_body
+):
+    if send_hash is None:
+        txhash = ""
+    elif send_hash:
+        txhash = set_validation_txhash
+    else:
+        txhash = "invalid-hash"
+
+    resp = requests.get(f"{ndauapi}/transaction/before/{txhash}")
+    assert resp.status_code == want_status
+    assert want_body in resp.text
+
+
+@pytest.mark.api
 def test_tx_prevalidate_and_submit(ndauapi, ndau, ndautool_toml):
     # Any transaction will do.  Here we RFE to the rfe address.
     txtype = "ReleaseFromEndowment"
