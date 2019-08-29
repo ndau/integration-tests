@@ -81,25 +81,22 @@ def test_tx_hash(ndauapi, set_validation, set_validation_txhash, send_hash, want
 
 @pytest.mark.api
 @pytest.mark.parametrize(
-    "send_hash,want_status,want_body",
+    "txhash,want_status,want_body",
     [
-        # No txhash means start from the latest transaction, so something should be returned.
-        (None, requests.codes.ok, '{"Txs":[{"BlockHeight":'),
+        ("", requests.codes.bad, "txhash parameter required"),
         # Successful response, but no transactions in the list.
-        (False, requests.codes.ok, '{"Txs":null}'),
-        # just ensure we got a real-looking tx back
-        (True, requests.codes.ok, '{"Txs":[{"BlockHeight":'),
+        ("invalid-hash", requests.codes.ok, '{"Txs":null,"NextTxHash":""}'),
+        # Successful response, with at least one transaction in the list.
+        ("start", requests.codes.ok, '{"Txs":[{"BlockHeight":'),
+        # Successful response, with at least one transaction in the list.
+        (None, requests.codes.ok, '{"Txs":[{"BlockHeight":'),
     ],
 )
 def test_tx_before_hash(
-    ndauapi, set_validation, set_validation_txhash, send_hash, want_status, want_body
+    ndauapi, set_validation, set_validation_txhash, txhash, want_status, want_body
 ):
-    if send_hash is None:
-        txhash = ""
-    elif send_hash:
+    if txhash is None:
         txhash = set_validation_txhash
-    else:
-        txhash = "invalid-hash"
 
     resp = requests.get(f"{ndauapi}/transaction/before/{txhash}")
     assert resp.status_code == want_status
