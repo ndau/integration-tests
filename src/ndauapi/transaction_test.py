@@ -83,10 +83,12 @@ def test_tx_hash(ndauapi, set_validation, set_validation_txhash, send_hash, want
 @pytest.mark.parametrize(
     "send_hash,want_status,want_body",
     [
-        (None, requests.codes.bad, "txhash parameter required"),
-        (False, requests.codes.ok, '{"Txs":null,"NextTxHash":""}'),
+        # No txhash means start from the latest transaction, so something should be returned.
+        (None, requests.codes.ok, '{"Txs":[{"BlockHeight":'),
+        # Successful response, but no transactions in the list.
+        (False, requests.codes.ok, '{"Txs":null}'),
         # just ensure we got a real-looking tx back
-        (True, requests.codes.ok, '"BlockHeight":'),
+        (True, requests.codes.ok, '{"Txs":[{"BlockHeight":'),
     ],
 )
 def test_tx_before_hash(
