@@ -89,7 +89,7 @@ def test_tx_hash(ndauapi, set_validation, set_validation_txhash, send_hash, want
         # Successful response, with at least one transaction in the list.
         ("start", requests.codes.ok, '{"Txs":[{"BlockHeight":'),
         # Successful response, with at least one transaction in the list.
-        ("start?types=Bogus|SetValidation&limit=1", requests.codes.ok, '{"Txs":[{"BlockHeight":'),
+        ("start?type=X&type=SetValidation&limit=1", requests.codes.ok, '{"Txs":[{"BlockHeight":'),
         # Successful response, with at least one transaction in the list.
         (None, requests.codes.ok, '{"Txs":[{"BlockHeight":'),
     ],
