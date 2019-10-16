@@ -1,5 +1,8 @@
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 import requests
+
 from src.util.random_string import random_string
 
 # requests codes aren't technically members of their containing objects
@@ -13,7 +16,7 @@ def accounts_with_history(ndau, set_up_account):
     for _ in range(3):
         name = random_string("test-acct")
         names.append(name)
-        # JSG use "set_up_account" instead of new, rfe, set-validation
+        # use "set_up_account" instead of new, rfe, set-validation
         set_up_account(name)
     for _ in range(5):
         for source in names:
@@ -80,3 +83,29 @@ def test_account_history(
     assert len(response.text) > 0
     if want_body is not None:
         assert want_body in response.text
+
+    # if this request succeeded, then paging depends on the size of the limit:
+    # these accounts have histories on the order of 10 items, so if the limit
+    # is less than 10, we should expect a 'next' page
+    if want_status == requests.codes.ok:
+        # default
+        limit = 100
+        if params is not None:
+            limit = params.get("limit", 100)
+
+        respj = response.json()
+
+        if limit < 10:
+            # we must see a non-empty Next item, which must be a URL
+            assert "Next" in respj
+            assert respj["Next"] != ""
+            # url must parse into a fully-qualified URL
+            scheme, netloc, path, _, qs, _ = urlparse(respj["Next"])
+            assert scheme != ""
+            assert netloc != ""
+            assert path != ""
+            assert "after" in parse_qs(qs)
+        else:
+            # Next item may or may not appear, but must be empty
+            nxt = respj.get("Next", "")
+            assert nxt == ""
