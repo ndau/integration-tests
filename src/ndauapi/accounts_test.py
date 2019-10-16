@@ -100,12 +100,6 @@ def test_account_history(
             assert "Next" in respj
             assert respj["Next"] != ""
             print("next: {}".format(respj["Next"]))
-            # url must parse into a fully-qualified URL
-            scheme, netloc, path, _, qs, _ = urlparse(respj["Next"])
-            assert scheme != ""
-            assert netloc != ""
-            assert path != ""
-            assert "after" in parse_qs(qs)
         else:
             # Next item may or may not appear, but must be empty
             nxt = respj.get("Next", "")
