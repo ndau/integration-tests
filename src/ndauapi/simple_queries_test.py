@@ -21,3 +21,10 @@ import pytest
 def test_simple_query(ndauapi, path):
     resp = requests.get(f"{ndauapi}/{path}")
     assert resp.status_code == requests.codes.ok
+
+# JSG this test used to infinite loop, now test we get appropriate error msg
+def test_malformed_node_query(ndauapi):
+    resp = requests.get(f"{ndauapi}/node/statuss")
+    assert resp.status_code == requests.codes.not_found
+    respj = resp.json()
+    assert respj["msg"] == "could not find node: statuss"
