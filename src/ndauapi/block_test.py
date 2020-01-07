@@ -1,5 +1,6 @@
 import pytest
 import requests
+
 from src.util.random_string import random_string
 
 # requests codes aren't technically members of their containing objects
@@ -14,7 +15,9 @@ def current_block(set_up_account, ndauapi):
     resp = requests.get(f"{ndauapi}/block/current")
     if resp.status_code != requests.codes.ok:
         pytest.skip(f"failed to get current block data")
-    return resp.json()
+    block = resp.json()
+    print(block)
+    return block
 
 
 @pytest.fixture(scope="module")
@@ -91,28 +94,23 @@ def test_block_date_range(ndauapi, min_height, start, end, want_code):
 
 @pytest.mark.api
 @pytest.mark.parametrize(
-    "send_valid_hash,want_code,want_body",
+    "send_hash,want_code,want_body",
     [
-        (None, requests.codes.bad, "blockhash parameter required"),
-        (False, requests.codes.ok, "null"),  # response is empty, so produces null
-        # note: this test currently fails. I don't know why, but I suspect we're
-        # searching for the wrong hash. That said,
-        (True, requests.codes.ok, None),  # should include hash we searched for
+        ("", requests.codes.bad, "blockhash parameter required"),
+        ("invalid", requests.codes.ok, "null"),  # response is empty, so produces null
+        (None, requests.codes.ok, None),  # should include hash we searched for
     ],
 )
-def test_block_hash(ndauapi, current_hash, send_valid_hash, want_code, want_body):
-    if send_valid_hash is None:
-        hash = ""
-    elif send_valid_hash:
+def test_block_hash(ndauapi, current_hash, send_hash, want_code, want_body):
+    if send_hash is None:
         hash = current_hash
-    else:
-        hash = "invalid"
+    if want_body is None:
+        want_body = current_hash
 
     resp = requests.get(f"{ndauapi}/block/hash/{hash}")
     print(resp.url)
+    print(resp.text)
     assert resp.status_code == want_code
-    if want_body is None:
-        want_body = current_hash
     assert want_body in resp.text
 
 
