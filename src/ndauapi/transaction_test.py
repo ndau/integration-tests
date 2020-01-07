@@ -76,7 +76,7 @@ def test_tx_hash(
     if txhash is None:
         txhash = set_validation_txhash
 
-    resp = requests.get(f"{ndauapi}/transaction/{txhash}")
+    resp = requests.get(f"{ndauapi}/transaction/detail/{txhash}")
     print(resp.text)
     assert resp.status_code == want_status
     assert want_body in resp.text
