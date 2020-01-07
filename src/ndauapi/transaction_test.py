@@ -1,10 +1,12 @@
 import base64
 import hashlib
 import json
-import pytest
-import requests
 import time
 from tempfile import NamedTemporaryFile
+
+import pytest
+import requests
+
 from src.util.random_string import random_string
 
 # requests codes aren't technically members of their containing objects
@@ -30,7 +32,9 @@ def set_validation_file(set_validation_json):
 
 @pytest.fixture(scope="session")
 def set_validation_signable_bytes(ndau, set_validation_file):
-    signable_bytes_b64 = ndau(f"signable-bytes --strip set-validation {set_validation_file}")
+    signable_bytes_b64 = ndau(
+        f"signable-bytes --strip set-validation {set_validation_file}"
+    )
     return base64.b64decode(signable_bytes_b64, validate=True)
 
 
@@ -58,23 +62,22 @@ def set_validation(ndau, set_validation_file):
 
 @pytest.mark.api
 @pytest.mark.parametrize(
-    "send_hash,want_status,want_body",
+    "txhash,want_status,want_body",
     [
-        (None, requests.codes.bad, "txhash parameter required"),
-        (False, requests.codes.ok, "null"),
+        ("", requests.codes.bad, "txhash parameter required"),
+        ("invalid-hash", requests.codes.ok, "null"),
         # just ensure we got a real-looking tx back
-        (True, requests.codes.ok, '"BlockHeight":'),
+        (None, requests.codes.ok, '"BlockHeight":'),
     ],
 )
-def test_tx_hash(ndauapi, set_validation, set_validation_txhash, send_hash, want_status, want_body):
-    if send_hash is None:
-        txhash = ""
-    elif send_hash:
+def test_tx_hash(
+    ndauapi, set_validation, set_validation_txhash, txhash, want_status, want_body
+):
+    if txhash is None:
         txhash = set_validation_txhash
-    else:
-        txhash = "invalid-hash"
 
     resp = requests.get(f"{ndauapi}/transaction/{txhash}")
+    print(resp.text)
     assert resp.status_code == want_status
     assert want_body in resp.text
 
@@ -89,7 +92,11 @@ def test_tx_hash(ndauapi, set_validation, set_validation_txhash, send_hash, want
         # Successful response, with at least one transaction in the list.
         ("start", requests.codes.ok, '{"Txs":[{"BlockHeight":'),
         # Successful response, with at least one transaction in the list.
-        ("start?type=X&type=SetValidation&limit=1", requests.codes.ok, '{"Txs":[{"BlockHeight":'),
+        (
+            "start?type=X&type=SetValidation&limit=1",
+            requests.codes.ok,
+            '{"Txs":[{"BlockHeight":',
+        ),
         # Successful response, with at least one transaction in the list.
         (None, requests.codes.ok, '{"Txs":[{"BlockHeight":'),
     ],
