@@ -103,11 +103,11 @@ def test_block_date_range(ndauapi, min_height, start, end, want_code):
 )
 def test_block_hash(ndauapi, current_hash, send_hash, want_code, want_body):
     if send_hash is None:
-        hash = current_hash
+        send_hash = current_hash
     if want_body is None:
         want_body = current_hash
 
-    resp = requests.get(f"{ndauapi}/block/hash/{hash}")
+    resp = requests.get(f"{ndauapi}/block/hash/{send_hash}")
     print(resp.url)
     print(resp.text)
     assert resp.status_code == want_code
