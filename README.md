@@ -12,7 +12,7 @@ Integration tests can be run against a running localnet.  They are also run auto
 1. Install `toml`: `pip3 install toml`
 1. Install `msgpack`: `pip3 install msgpack`
 1. Make sure you have your `NDAUHOME` environment variable set.  e.g. when running against localnet, you could use `export NDAUHOME=$HOME/.localnet/data/ndau-0`
-1. Clone this repo into `~/go/src/github.com/oneiro-ndev` so that it is next to the `ndau` repo
+1. Clone this repo into `~/go/src/github.com/ndau` so that it is next to the `ndau` repo
 1. `cd` into the repo root
 1. Install dependencies: `pipenv sync`
 1. Load the environment: `pipenv shell`

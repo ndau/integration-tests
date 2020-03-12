@@ -101,7 +101,7 @@ def get_ndau_tmhome_dir():
 
 
 def findpath(name):
-    cmds = Path(os.path.expandvars("$GOPATH/src/github.com/oneiro-ndev/commands"))
+    cmds = Path(os.path.expandvars("$GOPATH/src/github.com/ndau/commands"))
     for subpath in (name, f"cmd/{name}/{name}"):
         p = cmds / subpath
         if p.exists() and p.is_file() and p.stat().st_mode & 1 == 1:

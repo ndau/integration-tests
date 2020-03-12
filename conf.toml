@@ -1,19 +1,19 @@
 [chaos-go]
-repo="git@github.com:oneiro-ndev/chaos.git"
-logical="github.com/oneiro-ndev/chaos"
+repo="git@github.com:ndau/chaos.git"
+logical="github.com/ndau/chaos"
 label="master"
 
 [chaostool]
-repo="git@github.com:oneiro-ndev/commands.git"
-logical="github.com/oneiro-ndev/commands"
+repo="git@github.com:ndau/commands.git"
+logical="github.com/ndau/commands"
 label="master"
 
 [ndau-go]
-repo="git@github.com:oneiro-ndev/ndau.git"
-logical="github.com/oneiro-ndev/ndau"
+repo="git@github.com:ndau/ndau.git"
+logical="github.com/ndau/ndau"
 label="master"
 
 [ndautool]
-repo="git@github.com:oneiro-ndev/commands.git"
-logical="github.com/oneiro-ndev/commands"
+repo="git@github.com:ndau/commands.git"
+logical="github.com/ndau/commands"
 label="master"

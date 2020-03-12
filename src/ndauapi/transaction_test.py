@@ -49,7 +49,7 @@ def set_validation_txhash(set_validation_signable_bytes):
     Compute the tx hash of the set_validation tx.
 
     Defined in
-    https://github.com/oneiro-ndev/metanode/
+    https://github.com/ndau/metanode/
             blob/0f1c08ce1863f6950738932dc30ddaf8d8e66809/
             pkg/meta/transaction/transactable.go#L163-L166
     """

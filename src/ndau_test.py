@@ -518,7 +518,7 @@ def test_command_validator_change(
 
     stdout = ndau_suppress_err(
         # script from
-        # https://github.com/oneiro-ndev/commands/blob/master/
+        # https://github.com/ndau/commands/blob/master/
         #         cmd/chasm/examples/zero.chbin
         f"account register-node {ln0['name']} oAAgiA"
     )
