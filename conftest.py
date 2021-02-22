@@ -153,7 +153,8 @@ def ndau(ndautool_path, netconf, keeptemp):
         yield nd
     finally:
         if keeptemp:
-            shutil.copy2(temp_conf_path, conf_path)
+            print(temp_conf_path)
+        #    shutil.copy2(temp_conf_path, conf_path)
         elif conf_exists:
             # restore existing config
             shutil.move(temp_conf_path, conf_path)
