@@ -27,6 +27,7 @@ def test_get_ndau_status(ndau):
     info = json.loads(ndau("info"))
     moniker = info["node_info"]["moniker"]
     assert moniker == constants.LOCALNET0_MONIKER
+    print("conf-path")
 
 
 def test_create_account(ndau, rfe, zero_tx_fees):
@@ -275,7 +276,7 @@ def test_transfer_with_sib(ndau, nonzero_tx_fees, set_up_account, max_sib):
     account_data1 = json.loads(ndau(f"account query {account1}"))
     account_data2 = json.loads(ndau(f"account query {account2}"))
     # Subtract one napu for the set-validation transaction, one for the transfer.
-    assert account_data1["balance"] < orig_napu - xfer_napu - 2 * constants.ONE_NAPU_FEE
+    assert account_data1["balance"] == orig_napu - xfer_napu - 2 * constants.ONE_NAPU_FEE
     assert account_data1["lock"] is None
     # Subtract one napu for the set-validation transaction.
     assert account_data2["balance"] == orig_napu + xfer_napu - constants.ONE_NAPU_FEE
@@ -636,6 +637,33 @@ def test_account_attributes(ndau, ndau_suppress_err, set_up_account, rfe_to_ssv)
     # Testing this means we've verified that the AccountAttributes in svi is
     # set up properly.
     assert "InvalidTransaction" in ndau_suppress_err("account lock elephant-test 2d")
+
+
+def test_transfer_with_sib_exch_dest(ndau, nonzero_tx_fees, set_up_account, max_sib):
+    """Test Transfer transaction"""
+    # Set up accounts to transfer between.
+    account1 = random_string("xfer1")
+    set_up_account(account1)
+
+    orig_ndau = 10  # from set_up_account()
+    orig_napu = int(orig_ndau * 1e8)
+    xfer_ndau = 1  # We'll transfer this amount
+    xfer_napu = int(xfer_ndau * 1e8)
+
+    # One napu for the set-validation transaction.
+    account_data1 = json.loads(ndau(f"account query {account1}"))
+    assert account_data1["balance"] == orig_napu - constants.ONE_NAPU_FEE
+
+    # Transfer
+    ndau(f"transfer {xfer_ndau} {account1} elephant-test")
+    account_data1 = json.loads(ndau(f"account query {account1}"))
+    account_data2 = json.loads(ndau(f"account query elephant-test"))
+    # Subtract one napu for the set-validation transaction, one for the transfer.
+    assert account_data1["balance"] < orig_napu - xfer_napu - 2 * constants.ONE_NAPU_FEE
+    assert account_data1["lock"] is None
+    # Subtract one napu for the set-validation transaction.
+    assert account_data2["balance"] == orig_napu + xfer_napu
+    assert account_data2["lock"] is None
 
 
 def test_sysvar_history(ndau):
